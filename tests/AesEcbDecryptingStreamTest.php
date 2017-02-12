@@ -12,6 +12,6 @@ class AesEcbDecryptingStreamTest extends DecryptingStreamTest
 
     protected function getStreamInstance(StreamInterface $source, $key, $iv, $keySize)
     {
-        return new AesEbcDecryptingStream($source, $key, $keySize);
+        return new AesDecryptingStream($source, $key, new EcbIv(), $keySize);
     }
 }

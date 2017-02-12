@@ -2,9 +2,10 @@
 namespace Jsq\EncryptionStreams;
 
 use GuzzleHttp\Psr7\StreamDecoratorTrait;
+use LogicException;
 use Psr\Http\Message\StreamInterface;
 
-abstract class AesEncryptingStream implements StreamInterface
+class AesEncryptingStream implements StreamInterface
 {
     const BLOCK_SIZE = 16; // 128 bits
 
@@ -16,19 +17,41 @@ abstract class AesEncryptingStream implements StreamInterface
     private $buffer = '';
 
     /**
+     * @var InitializationVector
+     */
+    private $iv;
+
+    /**
      * @var string
      */
     private $key;
+
+    /**
+     * @var int
+     */
+    private $keySize;
 
     /**
      * @var StreamInterface
      */
     private $stream;
 
-    public function __construct(StreamInterface $cipherText, $key)
-    {
-        $this->stream = $cipherText;
+    /**
+     * @param StreamInterface $plainText
+     * @param string $key
+     * @param int $keySize
+     * @param InitializationVector $iv
+     */
+    public function __construct(
+        StreamInterface $plainText,
+        $key,
+        InitializationVector $iv,
+        $keySize = 256
+    ) {
+        $this->stream = $plainText;
         $this->key = $key;
+        $this->iv = $iv;
+        $this->keySize = $keySize;
     }
 
     public function isWritable()
@@ -50,34 +73,17 @@ abstract class AesEncryptingStream implements StreamInterface
         return $data;
     }
 
-    protected function emptyBuffer()
+    public function seek($offset, $whence = SEEK_SET)
     {
-        $this->buffer = '';
+        if ($offset === 0 && $whence === SEEK_SET) {
+            $this->buffer = '';
+            $this->iv->seek(0, SEEK_SET);
+            $this->stream->seek(0, SEEK_SET);
+        } else {
+            throw new LogicException('AES encryption streams only support being'
+                . ' rewound, not arbitrary seeking.');
+        }
     }
-
-    /**
-     * Returns the cipher method (as represented by ext-openssl)
-     *
-     * @return string
-     */
-    abstract protected function getCipherMethod();
-
-    /**
-     * Returns the initialization vector for the next block
-     *
-     * @return string
-     */
-    abstract protected function getIv();
-
-    /**
-     * Updates the initialization vector to take account of the last encrypted
-     * ciphertext block.
-     *
-     * @param string $cipherTextBlock
-     *
-     * @return void
-     */
-    abstract protected function updateIv($cipherTextBlock);
 
     private function encryptBlock($length)
     {
@@ -99,13 +105,13 @@ abstract class AesEncryptingStream implements StreamInterface
 
         $cipherText = openssl_encrypt(
             $plainText,
-            $this->getCipherMethod(),
+            "AES-{$this->keySize}-{$this->iv->getCipherMethod()}",
             $this->key,
             $options,
-            $this->getIv()
+            $this->iv->getCurrentIv()
         );
 
-        $this->updateIv(substr($cipherText, self::BLOCK_SIZE * -1));
+        $this->iv->update($cipherText);
 
         return $cipherText;
     }

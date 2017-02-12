@@ -12,6 +12,6 @@ class AesCtrDecryptingStreamTest extends DecryptingStreamTest
 
     protected function getStreamInstance(StreamInterface $source, $key, $iv, $keySize)
     {
-        return new AesCtrDecryptingStream($source, $key, $iv, $keySize);
+        return new AesDecryptingStream($source, $key, new CtrIv($iv), $keySize);
     }
 }
