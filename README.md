@@ -1,5 +1,7 @@
 # PSR-7 Stream Encryption Decorators
 
+[![Build Status](https://travis-ci.org/jeskew/php-encrypted-streams.svg?branch=master)](https://travis-ci.org/jeskew/php-encrypted-streams)
+[![Total Downloads](https://img.shields.io/packagist/dt/jsq/psr7-stream-encryption.svg?style=flat)](https://packagist.org/packages/jsq/psr7-stream-encryption)
 [![Author](http://img.shields.io/badge/author-@jreskew-blue.svg?style=flat-square)](https://twitter.com/jreskew)
 
 PHP's built-in OpenSSL bindings provide a convenient means of encrypting and
