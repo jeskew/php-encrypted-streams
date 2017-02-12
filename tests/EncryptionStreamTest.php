@@ -15,7 +15,7 @@ abstract class EncryptionStreamTest extends \PHPUnit_Framework_TestCase
         $memory = memory_get_usage();
 
         $stream = $this->getStreamInstance(
-            new RandomByteStream(1024 * self::MB),
+            new RandomByteStream(124 * self::MB),
             'foo',
             $this->generateIv(),
             256
