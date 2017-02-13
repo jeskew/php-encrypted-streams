@@ -42,3 +42,67 @@ $encryptedChunk = $ciphertext->read(1024 * 1024);
 ```
 
 No encryption is performed until `read` is called on the encrypting stream.
+
+To calculate the HMAC of a cipher text, wrap a decorated stream with an instance
+of `HashingStream`:
+
+```php
+$hash = null;
+$ciphertext = new Jsq\EncryptionStreams\AesEncryptingStream(
+    $plaintext,
+    $key,
+    $iv
+);
+$hashingDecorator = new Jsq\EncryptionStreams\HashingStream(
+    $ciphertext,
+    $key,
+    function ($calculatedHash) use (&$hash) {
+        $hash = $calculatedHash;
+    }
+);
+
+while (!$ciphertext->eof()) {
+    $ciphertext->read(1024 * 1024);
+}
+
+assert('$hash === $hashingDecorator->getHash()');
+```
+
+When decrypting a cipher text, wrap the cipher text in a hasing decorator before
+passing it as an argument to the decrypting stream:
+
+```php
+$key = 'secret key';
+$iv = random_bytes(openssl_cipher_iv_length('aes-256-cbc'));
+$plainText = 'Super secret text';
+$cipherText = openssl_encrypt(
+    $plainText,
+    'aes-256-cbc',
+    $key,
+    OPENSSL_RAW_DATA
+    $iv
+);
+$expectedHash = hash('sha256', $cipherText);
+
+$hashingDecorator = new Jsq\EncryptingStreams\HashingStream(
+    GuzzleHttp\Psr7\stream_for($cipherText),
+    $key,
+    function ($hash) use ($expectedHash) {
+        if ($hash !== $expectedHash) {
+            throw new DomainException('Cipher text mac does not match expected value!');
+        }
+    }
+);
+
+while (!$ciphertext->eof()) {
+    $ciphertext->read(1024 * 1024);
+}
+```
+
+As with the encrypting decorators, `HashingStream`s are lazy and will only hash
+the underlying stream as it is read. In the example above, no exception would be
+thrown until the entire cipher text had been read (and all but the last block
+deciphered).
+
+`HashingStream`s are not seekable, so you will need to wrap on in a
+`GuzzleHttp\Psr7\CachingStream` to support random access.

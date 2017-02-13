@@ -15,4 +15,4 @@ matrix:
 install:
   - travis_retry composer update --no-interaction --prefer-source
 
-script: vendor/bin/phpunit
+script: vendor/bin/phpunit -v --coverage-text
