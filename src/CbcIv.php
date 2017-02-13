@@ -40,6 +40,11 @@ class CbcIv implements InitializationVector
         return $this->iv;
     }
 
+    public function requiresPadding()
+    {
+        return true;
+    }
+
     public function seek($offset, $whence = SEEK_SET)
     {
         if ($offset === 0 && $whence === SEEK_SET) {
@@ -48,6 +53,11 @@ class CbcIv implements InitializationVector
             throw new LogicException('CBC initialization only support being'
                 . ' rewound, not arbitrary seeking.');
         }
+    }
+
+    public function supportsArbitrarySeeking()
+    {
+        return false;
     }
 
     public function update($cipherTextBlock)

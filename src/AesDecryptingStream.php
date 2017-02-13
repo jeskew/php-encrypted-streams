@@ -44,7 +44,7 @@ class AesDecryptingStream implements StreamInterface
     ) {
         $this->stream = $cipherText;
         $this->key = $key;
-        $this->iv = $iv;
+        $this->iv = clone $iv;
         $this->keySize = $keySize;
     }
 
@@ -77,11 +77,6 @@ class AesDecryptingStream implements StreamInterface
             throw new LogicException('AES encryption streams only support being'
                 . ' rewound, not arbitrary seeking.');
         }
-    }
-
-    protected function emptyBuffer()
-    {
-        $this->buffer = '';
     }
 
     private function decryptBlock($length)

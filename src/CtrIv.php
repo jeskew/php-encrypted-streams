@@ -42,15 +42,36 @@ class CtrIv implements InitializationVector
         return $this->calculateCurrentIv($this->iv, $this->ctrOffset);
     }
 
+    public function requiresPadding()
+    {
+        return false;
+    }
+
     public function seek($offset, $whence = SEEK_SET)
     {
+        if ($offset % self::BLOCK_SIZE !== 0) {
+            throw new LogicException('CTR initialization vectors only support '
+                . ' seeking to indexes that are multiples of '
+                . self::BLOCK_SIZE);
+        }
+
         if ($whence === SEEK_SET) {
             $this->resetOffset();
-            $this->incrementOffset($offset);
+            $this->incrementOffset($offset / self::BLOCK_SIZE);
+        } elseif ($whence === SEEK_CUR) {
+            if ($offset < 0) {
+                throw new LogicException('Negative offsets are not supported.');
+            }
+
+            $this->incrementOffset($offset / self::BLOCK_SIZE);
         } else {
-            throw new LogicException('CBC initialization only support being'
-                . ' rewound, not arbitrary seeking.');
+            throw new LogicException('Unrecognized whence.');
         }
+    }
+
+    public function supportsArbitrarySeeking()
+    {
+        return true;
     }
 
     public function update($cipherTextBlock)

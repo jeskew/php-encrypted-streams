@@ -50,7 +50,7 @@ class AesEncryptingStream implements StreamInterface
     ) {
         $this->stream = $plainText;
         $this->key = $key;
-        $this->iv = $iv;
+        $this->iv = clone $iv;
         $this->keySize = $keySize;
     }
 

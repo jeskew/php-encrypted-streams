@@ -13,7 +13,17 @@ class EcbIv implements InitializationVector
         return '';
     }
 
+    public function requiresPadding()
+    {
+        return true;
+    }
+
     public function seek($offset, $whence = SEEK_SET) {}
+
+    public function supportsArbitrarySeeking()
+    {
+        return true;
+    }
 
     public function update($cipherTextBlock) {}
 }
