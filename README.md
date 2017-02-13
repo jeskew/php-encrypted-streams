@@ -25,12 +25,14 @@ decorator to incrementally encrypt the contents of the decorated stream as
 `read` is called on the decorating stream:
 
 ```php
-$iv = random_bytes(openssl_cipher_iv_length('aes-256-cbc'));
+$iv = new Jsq\EncryptionStreams\CbcIv(
+    random_bytes(openssl_cipher_iv_length('aes-256-cbc'))
+);
 $key = ... // a symmetric encryption key 
 // Create a PSR-7 stream for a very large file.
 $plaintext = new GuzzleHttp\Psr7\LazyOpenStream('/path/to/a/massive/file', 'r+);
 // Create an encrypting stream.
-$ciphertext = new Jsq\EncryptionStreams\AesCbcEncryptingStream(
+$ciphertext = new Jsq\EncryptionStreams\AesEncryptingStream(
     $plaintext,
     $key,
     $iv

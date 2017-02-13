@@ -9,14 +9,10 @@ php:
 
 sudo: false
 
-env:
-  - COMPOSER_OPTS=""
-  - COMPOSER_OPTS="--prefer-lowest"
-
 matrix:
   fast_finish: true
 
 install:
-  - travis_retry composer update $COMPOSER_OPTS --no-interaction --prefer-source
+  - travis_retry composer update --no-interaction --prefer-source
 
 script: vendor/bin/phpunit

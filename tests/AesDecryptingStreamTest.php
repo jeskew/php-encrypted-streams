@@ -12,6 +12,98 @@ class AesDecryptingStreamTest extends \PHPUnit_Framework_TestCase
     use AesEncryptionStreamTestTrait;
 
     /**
+     * @dataProvider cartesianJoinInputIvKeySizeProvider
+     *
+     * @param StreamInterface $plainText
+     * @param InitializationVector $iv
+     * @param int $keySize
+     */
+    public function testStreamOutputSameAsOpenSSL(
+        StreamInterface $plainText,
+        InitializationVector $iv,
+        $keySize
+    ) {
+        $key = 'foo';
+        $cipherText = openssl_encrypt(
+            (string) $plainText,
+            "AES-{$keySize}-{$iv->getCipherMethod()}",
+            $key,
+            OPENSSL_RAW_DATA,
+            $iv->getCurrentIv()
+        );
+
+        $this->assertSame(
+            (string) new AesDecryptingStream(Psr7\stream_for($cipherText), $key, $iv, $keySize),
+            (string) $plainText
+        );
+    }
+
+    /**
+     * @dataProvider cartesianJoinInputIvKeySizeProvider
+     *
+     * @param StreamInterface $plainText
+     * @param InitializationVector $iv
+     * @param int $keySize
+     */
+    public function testReportsSizeOfPlaintextWherePossible(
+        StreamInterface $plainText,
+        InitializationVector $iv,
+        $keySize
+    ) {
+        $key = 'foo';
+        $cipherText = openssl_encrypt(
+            (string) $plainText,
+            "AES-{$keySize}-{$iv->getCipherMethod()}",
+            $key,
+            OPENSSL_RAW_DATA,
+            $iv->getCurrentIv()
+        );
+        $deciphered = new AesDecryptingStream(
+            Psr7\stream_for($cipherText),
+            $key,
+            $iv,
+            $keySize
+        );
+
+        if ($iv->requiresPadding()) {
+            $this->assertNull($deciphered->getSize());
+        } else {
+            $this->assertSame($plainText->getSize(), $deciphered->getSize());
+        }
+    }
+
+    /**
+     * @dataProvider cartesianJoinInputIvKeySizeProvider
+     *
+     * @param StreamInterface $plainText
+     * @param InitializationVector $iv
+     * @param int $keySize
+     */
+    public function testSupportsRewinding(
+        StreamInterface $plainText,
+        InitializationVector $iv,
+        $keySize
+    ) {
+        $key = 'foo';
+        $cipherText = openssl_encrypt(
+            (string) $plainText,
+            "AES-{$keySize}-{$iv->getCipherMethod()}",
+            $key,
+            OPENSSL_RAW_DATA,
+            $iv->getCurrentIv()
+        );
+        $deciphered = new AesDecryptingStream(
+            Psr7\stream_for($cipherText),
+            $key,
+            $iv,
+            $keySize
+        );
+        $firstBytes = $deciphered->read($keySize * 2 + 3);
+        $deciphered->rewind();
+        $this->assertSame($firstBytes, $deciphered->read($keySize * 2 + 3));
+    }
+
+    /**
      * @dataProvider cartesianJoinIvKeySizeProvider
      *
      * @param InitializationVector $iv
@@ -35,33 +127,5 @@ class AesDecryptingStreamTest extends \PHPUnit_Framework_TestCase
         }
 
         $this->assertLessThanOrEqual($memory + self::MB, memory_get_usage());
-    }
-
-    /**
-     * @dataProvider cartesianJoinInputIvKeySizeProvider
-     *
-     * @param StreamInterface $plainText
-     * @param InitializationVector $iv
-     * @param int $keySize
-     */
-    public function testStreamOutputSameAsOpenSSL(
-        StreamInterface $plainText,
-        InitializationVector $iv,
-        $keySize
-    ) {
-        $key = 'foo';
-        $cipherText = openssl_encrypt(
-            (string) $plainText,
-            "AES-{$keySize}-{$iv->getCipherMethod()}",
-            $key,
-            OPENSSL_RAW_DATA,
-            $iv->getCurrentIv()
-        );
-        $iv->seek(0);
-
-        $this->assertSame(
-            (string) new AesDecryptingStream(Psr7\stream_for($cipherText), $key, $iv, $keySize),
-            (string) $plainText
-        );
     }
 }

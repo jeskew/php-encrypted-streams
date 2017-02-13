@@ -54,6 +54,20 @@ class AesEncryptingStream implements StreamInterface
         $this->keySize = $keySize;
     }
 
+    public function getSize()
+    {
+        $plainTextSize = $this->stream->getSize();
+
+        if ($this->iv->requiresPadding() && $plainTextSize !== null) {
+            // PKCS7 padding requires that between 1 and self::BLOCK_SIZE be
+            // added to the plaintext to make it an even number of blocks.
+            $padding = self::BLOCK_SIZE - $plainTextSize % self::BLOCK_SIZE;
+            return $plainTextSize + $padding;
+        }
+
+        return $plainTextSize;
+    }
+
     public function isWritable()
     {
         return false;
@@ -75,13 +89,20 @@ class AesEncryptingStream implements StreamInterface
 
     public function seek($offset, $whence = SEEK_SET)
     {
-        if ($offset === 0 && $whence === SEEK_SET) {
+        if ($whence === SEEK_CUR) {
+            $offset = $this->tell() + $offset;
+            $whence = SEEK_SET;
+        }
+
+        if ($whence === SEEK_SET) {
             $this->buffer = '';
-            $this->iv->seek(0, SEEK_SET);
-            $this->stream->seek(0, SEEK_SET);
+            $wholeBlockOffset
+                = (int) ($offset / self::BLOCK_SIZE) * self::BLOCK_SIZE;
+            $this->stream->seek($wholeBlockOffset);
+            $this->iv->seek($wholeBlockOffset);
+            $this->read($offset - $wholeBlockOffset);
         } else {
-            throw new LogicException('AES encryption streams only support being'
-                . ' rewound, not arbitrary seeking.');
+            throw new LogicException('Unrecognized whence.');
         }
     }
 

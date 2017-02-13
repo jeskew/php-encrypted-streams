@@ -48,6 +48,21 @@ class AesDecryptingStream implements StreamInterface
         $this->keySize = $keySize;
     }
 
+    public function getSize()
+    {
+        $plainTextSize = $this->stream->getSize();
+
+        if ($this->iv->requiresPadding()) {
+            // PKCS7 padding requires that between 1 and self::BLOCK_SIZE be
+            // added to the plaintext to make it an even number of blocks. The
+            // plaintext is between strlen($cipherText) - self::BLOCK_SIZE and
+            // strlen($cipherText) - 1
+            return null;
+        }
+
+        return $plainTextSize;
+    }
+
     public function isWritable()
     {
         return false;
