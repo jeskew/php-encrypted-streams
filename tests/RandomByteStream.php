@@ -15,6 +15,11 @@ class RandomByteStream implements StreamInterface
     private $maxLength;
 
     /**
+     * @var PumpStream
+     */
+    private $stream;
+
+    /**
      * @param int $maxLength
      */
     public function __construct($maxLength)

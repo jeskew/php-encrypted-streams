@@ -1,22 +1,18 @@
 <?php
 namespace Jsq\EncryptionStreams;
 
-class CbcIvTest extends \PHPUnit_Framework_TestCase
+class CbcTest extends \PHPUnit_Framework_TestCase
 {
     public function testShouldReportCipherMethodOfCBC()
     {
-        $ivString = openssl_random_pseudo_bytes(
-            openssl_cipher_iv_length('aes-128-cbc')
-        );
-        $this->assertSame('CBC', (new CbcIv($ivString))->getCipherMethod());
+        $ivString = random_bytes(openssl_cipher_iv_length('aes-128-cbc'));
+        $this->assertSame('CBC', (new Cbc($ivString))->getName());
     }
 
     public function testShouldReturnInitialIvStringForCurrentIvBeforeUpdate()
     {
-        $ivString = openssl_random_pseudo_bytes(
-            openssl_cipher_iv_length('aes-128-cbc')
-        );
-        $iv = new CbcIv($ivString);
+        $ivString = random_bytes(openssl_cipher_iv_length('aes-128-cbc'));
+        $iv = new Cbc($ivString);
 
         $this->assertSame($ivString, $iv->getCurrentIv());
     }
@@ -24,9 +20,9 @@ class CbcIvTest extends \PHPUnit_Framework_TestCase
     public function testUpdateShouldSetCurrentIvToEndOfCipherBlock()
     {
         $ivLength = openssl_cipher_iv_length('aes-128-cbc');
-        $ivString = openssl_random_pseudo_bytes($ivLength);
-        $iv = new CbcIv($ivString);
-        $cipherTextBlock = openssl_random_pseudo_bytes(1024);
+        $ivString = random_bytes($ivLength);
+        $iv = new Cbc($ivString);
+        $cipherTextBlock = random_bytes(1024);
 
         $iv->update($cipherTextBlock);
         $this->assertNotSame($ivString, $iv->getCurrentIv());
@@ -41,18 +37,14 @@ class CbcIvTest extends \PHPUnit_Framework_TestCase
      */
     public function testShouldThrowWhenIvOfInvalidLengthProvided()
     {
-        new CbcIv(openssl_random_pseudo_bytes(
-            openssl_cipher_iv_length('aes-128-cbc') + 1
-        ));
+        new Cbc(random_bytes(openssl_cipher_iv_length('aes-128-cbc') + 1));
     }
 
     public function testShouldSupportSeekingToBeginning()
     {
-        $ivString = openssl_random_pseudo_bytes(
-            openssl_cipher_iv_length('aes-128-cbc')
-        );
-        $iv = new CbcIv($ivString);
-        $cipherTextBlock = openssl_random_pseudo_bytes(1024);
+        $ivString = random_bytes(openssl_cipher_iv_length('aes-128-cbc'));
+        $iv = new Cbc($ivString);
+        $cipherTextBlock = random_bytes(1024);
 
         $iv->update($cipherTextBlock);
         $iv->seek(0);
@@ -64,11 +56,9 @@ class CbcIvTest extends \PHPUnit_Framework_TestCase
      */
     public function testShouldThrowWhenNonZeroOffsetProvidedToSeek()
     {
-        $ivString = openssl_random_pseudo_bytes(
-            openssl_cipher_iv_length('aes-128-cbc')
-        );
-        $iv = new CbcIv($ivString);
-        $cipherTextBlock = openssl_random_pseudo_bytes(1024);
+        $ivString = random_bytes(openssl_cipher_iv_length('aes-128-cbc'));
+        $iv = new Cbc($ivString);
+        $cipherTextBlock = random_bytes(1024);
 
         $iv->update($cipherTextBlock);
         $iv->seek(1);
@@ -79,11 +69,9 @@ class CbcIvTest extends \PHPUnit_Framework_TestCase
      */
     public function testShouldThrowWhenSeekCurProvidedToSeek()
     {
-        $ivString = openssl_random_pseudo_bytes(
-            openssl_cipher_iv_length('aes-128-cbc')
-        );
-        $iv = new CbcIv($ivString);
-        $cipherTextBlock = openssl_random_pseudo_bytes(1024);
+        $ivString = random_bytes(openssl_cipher_iv_length('aes-128-cbc'));
+        $iv = new Cbc($ivString);
+        $cipherTextBlock = random_bytes(1024);
 
         $iv->update($cipherTextBlock);
         $iv->seek(0, SEEK_CUR);
@@ -94,11 +82,9 @@ class CbcIvTest extends \PHPUnit_Framework_TestCase
      */
     public function testShouldThrowWhenSeekEndProvidedToSeek()
     {
-        $ivString = openssl_random_pseudo_bytes(
-            openssl_cipher_iv_length('aes-128-cbc')
-        );
-        $iv = new CbcIv($ivString);
-        $cipherTextBlock = openssl_random_pseudo_bytes(1024);
+        $ivString = random_bytes(openssl_cipher_iv_length('aes-128-cbc'));
+        $iv = new Cbc($ivString);
+        $cipherTextBlock = random_bytes(1024);
 
         $iv->update($cipherTextBlock);
         $iv->seek(0, SEEK_END);

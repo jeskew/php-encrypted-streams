@@ -27,6 +27,25 @@ trait AesEncryptionStreamTestTrait
 
         return $toReturn;
     }
+
+    public function cartesianJoinInputKeySizeProvider()
+    {
+        $toReturn = [];
+        $plainTexts = $this->unwrapProvider([$this, 'plainTextProvider']);
+        $keySizes = $this->unwrapProvider([$this, 'keySizeProvider']);
+
+        for ($i = 0; $i < count($plainTexts); $i++) {
+            for ($j = 0; $j < count($keySizes); $j++) {
+                $toReturn []= [
+                    $plainTexts[$i],
+                    $keySizes[$j],
+                ];
+            }
+        }
+
+        return $toReturn;
+    }
+
     public function cartesianJoinIvKeySizeProvider()
     {
         $toReturn = [];
@@ -48,13 +67,9 @@ trait AesEncryptionStreamTestTrait
     public function ivProvider()
     {
         return [
-            [new CbcIv(openssl_random_pseudo_bytes(
-                openssl_cipher_iv_length('aes-256-cbc')
-            ))],
-            [new CtrIv(openssl_random_pseudo_bytes(
-                openssl_cipher_iv_length('aes-256-ctr')
-            ))],
-            [new EcbIv()],
+            [new Cbc(random_bytes(openssl_cipher_iv_length('aes-256-cbc')))],
+            [new Ctr(random_bytes(openssl_cipher_iv_length('aes-256-ctr')))],
+            [new Ecb()],
         ];
     }
 
@@ -72,7 +87,7 @@ trait AesEncryptionStreamTestTrait
             [Psr7\stream_for('The rain in Spain falls mainly on the plain.')],
             [Psr7\stream_for('دست‌نوشته‌ها نمی‌سوزند')],
             [Psr7\stream_for('Рукописи не горят')],
-            [new CachingStream(new RandomByteStream(1024 * 1024 + 11))]
+            [new CachingStream(new RandomByteStream(2 * 1024 * 1024 + 11))]
         ];
     }
 

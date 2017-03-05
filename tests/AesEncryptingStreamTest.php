@@ -15,12 +15,12 @@ class AesEncryptingStreamTest extends \PHPUnit_Framework_TestCase
      * @dataProvider cartesianJoinInputIvKeySizeProvider
      *
      * @param StreamInterface $plainText
-     * @param InitializationVector $iv
+     * @param CipherMethod $iv
      * @param int $keySize
      */
     public function testStreamOutputSameAsOpenSSL(
         StreamInterface $plainText,
-        InitializationVector $iv,
+        CipherMethod $iv,
         $keySize
     ) {
         $plainText->rewind();
@@ -30,7 +30,7 @@ class AesEncryptingStreamTest extends \PHPUnit_Framework_TestCase
             (string) new AesEncryptingStream($plainText, $key, $iv, $keySize),
             openssl_encrypt(
                 (string) $plainText,
-                "AES-{$keySize}-{$iv->getCipherMethod()}",
+                "AES-{$keySize}-{$iv->getName()}",
                 $key,
                 OPENSSL_RAW_DATA,
                 $iv->getCurrentIv()
@@ -42,12 +42,12 @@ class AesEncryptingStreamTest extends \PHPUnit_Framework_TestCase
      * @dataProvider cartesianJoinInputIvKeySizeProvider
      *
      * @param StreamInterface $plainText
-     * @param InitializationVector $iv
+     * @param CipherMethod $iv
      * @param int $keySize
      */
     public function testSupportsRewinding(
         StreamInterface $plainText,
-        InitializationVector $iv,
+        CipherMethod $iv,
         $keySize
     ) {
         $plainText->rewind();
@@ -61,12 +61,12 @@ class AesEncryptingStreamTest extends \PHPUnit_Framework_TestCase
      * @dataProvider cartesianJoinInputIvKeySizeProvider
      *
      * @param StreamInterface $plainText
-     * @param InitializationVector $iv
+     * @param CipherMethod $iv
      * @param int $keySize
      */
     public function testAccuratelyReportsSizeOfCipherText(
         StreamInterface $plainText,
-        InitializationVector $iv,
+        CipherMethod $iv,
         $keySize
     ) {
         $plainText->rewind();
@@ -77,11 +77,11 @@ class AesEncryptingStreamTest extends \PHPUnit_Framework_TestCase
     /**
      * @dataProvider cartesianJoinIvKeySizeProvider
      *
-     * @param InitializationVector $iv
+     * @param CipherMethod $iv
      * @param int $keySize
      */
     public function testMemoryUsageRemainsConstant(
-        InitializationVector $iv,
+        CipherMethod $iv,
         $keySize
     ) {
         $memory = memory_get_usage();

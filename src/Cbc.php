@@ -4,7 +4,7 @@ namespace Jsq\EncryptionStreams;
 use InvalidArgumentException;
 use LogicException;
 
-class CbcIv implements InitializationVector
+class Cbc implements CipherMethod
 {
     const BLOCK_SIZE = 16;
 
@@ -30,7 +30,7 @@ class CbcIv implements InitializationVector
         $this->baseIv = $this->iv = $iv;
     }
 
-    public function getCipherMethod()
+    public function getName()
     {
         return 'CBC';
     }
@@ -53,11 +53,6 @@ class CbcIv implements InitializationVector
             throw new LogicException('CBC initialization only support being'
                 . ' rewound, not arbitrary seeking.');
         }
-    }
-
-    public function supportsArbitrarySeeking()
-    {
-        return false;
     }
 
     public function update($cipherTextBlock)

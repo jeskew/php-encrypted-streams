@@ -4,7 +4,7 @@ namespace Jsq\EncryptionStreams;
 use InvalidArgumentException;
 use LogicException;
 
-class CtrIv implements InitializationVector
+class Ctr implements CipherMethod
 {
     const BLOCK_SIZE = 16;
     const CTR_BLOCK_MAX = 65536; // maximum 16-bit unsigned integer value
@@ -21,6 +21,9 @@ class CtrIv implements InitializationVector
      */
     private $ctrOffset;
 
+    /**
+     * @param string $iv
+     */
     public function __construct($iv)
     {
         if (strlen($iv) !== openssl_cipher_iv_length('aes-128-ctr')) {
@@ -32,7 +35,7 @@ class CtrIv implements InitializationVector
         $this->resetOffset();
     }
 
-    public function getCipherMethod()
+    public function getName()
     {
         return 'CTR';
     }
@@ -67,11 +70,6 @@ class CtrIv implements InitializationVector
         } else {
             throw new LogicException('Unrecognized whence.');
         }
-    }
-
-    public function supportsArbitrarySeeking()
-    {
-        return true;
     }
 
     public function update($cipherTextBlock)
@@ -110,9 +108,6 @@ class CtrIv implements InitializationVector
         }, $iv));
     }
 
-    /**
-     * @param int $incrementBy
-     */
     private function incrementOffset($incrementBy)
     {
         for ($i = 7; $i >= 0; $i--) {

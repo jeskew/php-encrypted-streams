@@ -15,18 +15,18 @@ class AesDecryptingStreamTest extends \PHPUnit_Framework_TestCase
      * @dataProvider cartesianJoinInputIvKeySizeProvider
      *
      * @param StreamInterface $plainText
-     * @param InitializationVector $iv
+     * @param CipherMethod $iv
      * @param int $keySize
      */
     public function testStreamOutputSameAsOpenSSL(
         StreamInterface $plainText,
-        InitializationVector $iv,
+        CipherMethod $iv,
         $keySize
     ) {
         $key = 'foo';
         $cipherText = openssl_encrypt(
             (string) $plainText,
-            "AES-{$keySize}-{$iv->getCipherMethod()}",
+            "AES-{$keySize}-{$iv->getName()}",
             $key,
             OPENSSL_RAW_DATA,
             $iv->getCurrentIv()
@@ -42,18 +42,18 @@ class AesDecryptingStreamTest extends \PHPUnit_Framework_TestCase
      * @dataProvider cartesianJoinInputIvKeySizeProvider
      *
      * @param StreamInterface $plainText
-     * @param InitializationVector $iv
+     * @param CipherMethod $iv
      * @param int $keySize
      */
     public function testReportsSizeOfPlaintextWherePossible(
         StreamInterface $plainText,
-        InitializationVector $iv,
+        CipherMethod $iv,
         $keySize
     ) {
         $key = 'foo';
         $cipherText = openssl_encrypt(
             (string) $plainText,
-            "AES-{$keySize}-{$iv->getCipherMethod()}",
+            "AES-{$keySize}-{$iv->getName()}",
             $key,
             OPENSSL_RAW_DATA,
             $iv->getCurrentIv()
@@ -76,18 +76,18 @@ class AesDecryptingStreamTest extends \PHPUnit_Framework_TestCase
      * @dataProvider cartesianJoinInputIvKeySizeProvider
      *
      * @param StreamInterface $plainText
-     * @param InitializationVector $iv
+     * @param CipherMethod $iv
      * @param int $keySize
      */
     public function testSupportsRewinding(
         StreamInterface $plainText,
-        InitializationVector $iv,
+        CipherMethod $iv,
         $keySize
     ) {
         $key = 'foo';
         $cipherText = openssl_encrypt(
             (string) $plainText,
-            "AES-{$keySize}-{$iv->getCipherMethod()}",
+            "AES-{$keySize}-{$iv->getName()}",
             $key,
             OPENSSL_RAW_DATA,
             $iv->getCurrentIv()
@@ -106,11 +106,11 @@ class AesDecryptingStreamTest extends \PHPUnit_Framework_TestCase
     /**
      * @dataProvider cartesianJoinIvKeySizeProvider
      *
-     * @param InitializationVector $iv
+     * @param CipherMethod $iv
      * @param int $keySize
      */
     public function testMemoryUsageRemainsConstant(
-        InitializationVector $iv,
+        CipherMethod $iv,
         $keySize
     ) {
         $memory = memory_get_usage();

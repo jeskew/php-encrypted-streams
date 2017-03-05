@@ -17,7 +17,7 @@ class AesDecryptingStream implements StreamInterface
     private $buffer = '';
 
     /**
-     * @var InitializationVector
+     * @var CipherMethod
      */
     private $iv;
 
@@ -36,10 +36,16 @@ class AesDecryptingStream implements StreamInterface
      */
     private $stream;
 
+    /**
+     * @param StreamInterface $cipherText
+     * @param string $key
+     * @param CipherMethod $iv
+     * @param int $keySize
+     */
     public function __construct(
         StreamInterface $cipherText,
         $key,
-        InitializationVector $iv,
+        CipherMethod $iv,
         $keySize = 256
     ) {
         $this->stream = $cipherText;
@@ -114,7 +120,7 @@ class AesDecryptingStream implements StreamInterface
 
         $plaintext = openssl_decrypt(
             $cipherText,
-            "AES-{$this->keySize}-{$this->iv->getCipherMethod()}",
+            "AES-{$this->keySize}-{$this->iv->getName()}",
             $this->key,
             $options,
             $this->iv->getCurrentIv()

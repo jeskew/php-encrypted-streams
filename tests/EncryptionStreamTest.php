@@ -47,9 +47,7 @@ abstract class EncryptionStreamTest extends \PHPUnit_Framework_TestCase
      */
     protected function generateIv()
     {
-        return openssl_random_pseudo_bytes(
-            openssl_cipher_iv_length($this->getCipherMethod())
-        );
+        return random_bytes(openssl_cipher_iv_length($this->getCipherMethod()));
     }
 
     /**

@@ -1,9 +1,9 @@
 <?php
 namespace Jsq\EncryptionStreams;
 
-class EcbIv implements InitializationVector
+class Ecb implements CipherMethod
 {
-    public function getCipherMethod()
+    public function getName()
     {
         return 'ECB';
     }
@@ -19,11 +19,6 @@ class EcbIv implements InitializationVector
     }
 
     public function seek($offset, $whence = SEEK_SET) {}
-
-    public function supportsArbitrarySeeking()
-    {
-        return true;
-    }
 
     public function update($cipherTextBlock) {}
 }

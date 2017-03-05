@@ -10,6 +10,11 @@ class HashingStream implements StreamInterface
     use StreamDecoratorTrait;
 
     /**
+     * @var StreamInterface
+     */
+    private $stream;
+
+    /**
      * @var string
      */
     private $hash;
@@ -24,6 +29,12 @@ class HashingStream implements StreamInterface
      */
     private $onComplete;
 
+    /**
+     * @param StreamInterface $stream
+     * @param string|null $key
+     * @param callable|null $onComplete
+     * @param string $algo
+     */
     public function __construct(
         StreamInterface $stream,
         $key = null,
@@ -55,7 +66,9 @@ class HashingStream implements StreamInterface
     public function read($length)
     {
         $read = $this->stream->read($length);
-        hash_update($this->hashResource, $read);
+        if (strlen($read) > 0) {
+            hash_update($this->hashResource, $read);
+        }
         if ($this->stream->eof()) {
             $this->hash = hash_final($this->hashResource, true);
             if ($this->onComplete) {
