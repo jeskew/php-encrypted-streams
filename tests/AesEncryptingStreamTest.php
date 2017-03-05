@@ -1,6 +1,7 @@
 <?php
 namespace Jsq\EncryptionStreams;
 
+use GuzzleHttp\Psr7;
 use Psr\Http\Message\StreamInterface;
 
 class AesEncryptingStreamTest extends \PHPUnit_Framework_TestCase
@@ -12,7 +13,7 @@ class AesEncryptingStreamTest extends \PHPUnit_Framework_TestCase
     use AesEncryptionStreamTestTrait;
 
     /**
-     * @dataProvider cartesianJoinInputIvKeySizeProvider
+     * @dataProvider cartesianJoinInputCipherMethodKeySizeProvider
      *
      * @param StreamInterface $plainText
      * @param CipherMethod $iv
@@ -39,7 +40,7 @@ class AesEncryptingStreamTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @dataProvider cartesianJoinInputIvKeySizeProvider
+     * @dataProvider cartesianJoinInputCipherMethodKeySizeProvider
      *
      * @param StreamInterface $plainText
      * @param CipherMethod $iv
@@ -58,7 +59,7 @@ class AesEncryptingStreamTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @dataProvider cartesianJoinInputIvKeySizeProvider
+     * @dataProvider cartesianJoinInputCipherMethodKeySizeProvider
      *
      * @param StreamInterface $plainText
      * @param CipherMethod $iv
@@ -98,5 +99,69 @@ class AesEncryptingStreamTest extends \PHPUnit_Framework_TestCase
         }
 
         $this->assertLessThanOrEqual($memory + self::MB, memory_get_usage());
+    }
+
+    public function testIsNotWritable()
+    {
+        $stream = new AesEncryptingStream(
+            new RandomByteStream(124 * self::MB),
+            'foo',
+            new Cbc(random_bytes(openssl_cipher_iv_length('aes-256-cbc')))
+        );
+
+        $this->assertFalse($stream->isWritable());
+    }
+
+    /**
+     * @dataProvider cipherMethodProvider
+     *
+     * @param CipherMethod $cipherMethod
+     */
+    public function testReturnsPaddedOrEmptyStringWhenSourceStreamEmpty(
+        CipherMethod $cipherMethod
+    ){
+        $stream = new AesEncryptingStream(
+            Psr7\stream_for(''),
+            'foo',
+            $cipherMethod
+        );
+
+        $paddingLength = $cipherMethod->requiresPadding() ? 16 : 0;
+
+        $this->assertSame($paddingLength, strlen($stream->read(self::MB)));
+        $this->assertSame($stream->read(self::MB), '');
+    }
+
+    /**
+     * @dataProvider cipherMethodProvider
+     *
+     * @param CipherMethod $cipherMethod
+     *
+     * @expectedException \LogicException
+     */
+    public function testDoesNotSupportSeekingFromEnd(CipherMethod $cipherMethod)
+    {
+        $stream = new AesEncryptingStream(Psr7\stream_for('foo'), 'foo', $cipherMethod);
+
+        $stream->seek(1, SEEK_END);
+    }
+
+    /**
+     * @dataProvider seekableCipherMethodProvider
+     *
+     * @param CipherMethod $cipherMethod
+     */
+    public function testSupportsSeekingFromCurrentPosition(
+        CipherMethod $cipherMethod
+    ){
+        $stream = new AesEncryptingStream(
+            Psr7\stream_for(random_bytes(2 * self::MB)),
+            'foo',
+            $cipherMethod
+        );
+
+        $lastFiveBytes = substr($stream->read(self::MB), self::MB - 5);
+        $stream->seek(-5, SEEK_CUR);
+        $this->assertSame($lastFiveBytes, $stream->read(5));
     }
 }

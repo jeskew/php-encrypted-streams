@@ -2,3 +2,5 @@ composer.phar
 /vendor/
 composer.lock
 
+coverage-report/
+

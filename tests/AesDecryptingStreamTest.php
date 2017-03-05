@@ -12,7 +12,7 @@ class AesDecryptingStreamTest extends \PHPUnit_Framework_TestCase
     use AesEncryptionStreamTestTrait;
 
     /**
-     * @dataProvider cartesianJoinInputIvKeySizeProvider
+     * @dataProvider cartesianJoinInputCipherMethodKeySizeProvider
      *
      * @param StreamInterface $plainText
      * @param CipherMethod $iv
@@ -39,7 +39,7 @@ class AesDecryptingStreamTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @dataProvider cartesianJoinInputIvKeySizeProvider
+     * @dataProvider cartesianJoinInputCipherMethodKeySizeProvider
      *
      * @param StreamInterface $plainText
      * @param CipherMethod $iv
@@ -73,7 +73,7 @@ class AesDecryptingStreamTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @dataProvider cartesianJoinInputIvKeySizeProvider
+     * @dataProvider cartesianJoinInputCipherMethodKeySizeProvider
      *
      * @param StreamInterface $plainText
      * @param CipherMethod $iv
@@ -127,5 +127,44 @@ class AesDecryptingStreamTest extends \PHPUnit_Framework_TestCase
         }
 
         $this->assertLessThanOrEqual($memory + self::MB, memory_get_usage());
+    }
+
+    public function testIsNotWritable()
+    {
+        $stream = new AesDecryptingStream(
+            new RandomByteStream(124 * self::MB),
+            'foo',
+            new Cbc(random_bytes(openssl_cipher_iv_length('aes-256-cbc')))
+        );
+
+        $this->assertFalse($stream->isWritable());
+    }
+
+    /**
+     * @expectedException \LogicException
+     */
+    public function testDoesNotSupportArbitrarySeeking()
+    {
+        $stream = new AesDecryptingStream(
+            new RandomByteStream(124 * self::MB),
+            'foo',
+            new Cbc(random_bytes(openssl_cipher_iv_length('aes-256-cbc')))
+        );
+
+        $stream->seek(1);
+    }
+
+    /**
+     * @dataProvider cipherMethodProvider
+     *
+     * @param CipherMethod $cipherMethod
+     */
+    public function testReturnsEmptyStringWhenSourceStreamEmpty(
+        CipherMethod $cipherMethod
+    ) {
+        $stream = new AesDecryptingStream(Psr7\stream_for(''), 'foo', $cipherMethod);
+
+        $this->assertEmpty($stream->read(self::MB));
+        $this->assertSame($stream->read(self::MB), '');
     }
 }

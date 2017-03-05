@@ -19,7 +19,7 @@ class AesDecryptingStream implements StreamInterface
     /**
      * @var CipherMethod
      */
-    private $iv;
+    private $cipherMethod;
 
     /**
      * @var string
@@ -39,18 +39,18 @@ class AesDecryptingStream implements StreamInterface
     /**
      * @param StreamInterface $cipherText
      * @param string $key
-     * @param CipherMethod $iv
+     * @param CipherMethod $cipherMethod
      * @param int $keySize
      */
     public function __construct(
         StreamInterface $cipherText,
         $key,
-        CipherMethod $iv,
+        CipherMethod $cipherMethod,
         $keySize = 256
     ) {
         $this->stream = $cipherText;
         $this->key = $key;
-        $this->iv = clone $iv;
+        $this->cipherMethod = clone $cipherMethod;
         $this->keySize = $keySize;
     }
 
@@ -58,7 +58,7 @@ class AesDecryptingStream implements StreamInterface
     {
         $plainTextSize = $this->stream->getSize();
 
-        if ($this->iv->requiresPadding()) {
+        if ($this->cipherMethod->requiresPadding()) {
             // PKCS7 padding requires that between 1 and self::BLOCK_SIZE be
             // added to the plaintext to make it an even number of blocks. The
             // plaintext is between strlen($cipherText) - self::BLOCK_SIZE and
@@ -85,14 +85,14 @@ class AesDecryptingStream implements StreamInterface
         $data = substr($this->buffer, 0, $length);
         $this->buffer = substr($this->buffer, $length);
 
-        return $data;
+        return $data ? $data : '';
     }
 
     public function seek($offset, $whence = SEEK_SET)
     {
         if ($offset === 0 && $whence === SEEK_SET) {
             $this->buffer = '';
-            $this->iv->seek(0, SEEK_SET);
+            $this->cipherMethod->seek(0, SEEK_SET);
             $this->stream->seek(0, SEEK_SET);
         } else {
             throw new LogicException('AES encryption streams only support being'
@@ -120,13 +120,13 @@ class AesDecryptingStream implements StreamInterface
 
         $plaintext = openssl_decrypt(
             $cipherText,
-            "AES-{$this->keySize}-{$this->iv->getName()}",
+            "AES-{$this->keySize}-{$this->cipherMethod->getName()}",
             $this->key,
             $options,
-            $this->iv->getCurrentIv()
+            $this->cipherMethod->getCurrentIv()
         );
 
-        $this->iv->update($cipherText);
+        $this->cipherMethod->update($cipherText);
 
         return $plaintext;
     }
