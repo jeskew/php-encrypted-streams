@@ -3,6 +3,7 @@ namespace Jsq\EncryptionStreams;
 
 use BadMethodCallException;
 use GuzzleHttp\Psr7\StreamDecoratorTrait;
+use LogicException;
 use Psr\Http\Message\StreamInterface;
 
 class HashingStream implements StreamInterface
@@ -29,22 +30,28 @@ class HashingStream implements StreamInterface
      */
     private $onComplete;
 
+    private $key;
+
+    private $algorithm;
+
     /**
      * @param StreamInterface $stream
      * @param string|null $key
      * @param callable|null $onComplete
-     * @param string $algo
+     * @param string $algorithm
      */
     public function __construct(
         StreamInterface $stream,
         $key = null,
         callable $onComplete = null,
-        $algo = 'sha256'
+        $algorithm = 'sha256'
     ){
         $this->stream = $stream;
-        $this->hashResource
-            = hash_init($algo, $key !== null ? HASH_HMAC : 0, $key);
+        $this->key = $key;
         $this->onComplete = $onComplete;
+        $this->algorithm = $algorithm;
+
+        $this->initializeHash();
     }
 
     /**
@@ -56,11 +63,6 @@ class HashingStream implements StreamInterface
     public function getHash()
     {
         return $this->hash;
-    }
-
-    public function isSeekable()
-    {
-        return false;
     }
 
     public function read($length)
@@ -81,6 +83,22 @@ class HashingStream implements StreamInterface
 
     public function seek($offset, $whence = SEEK_SET)
     {
-        throw new BadMethodCallException('Hashing streams are not seekable');
+        if ($offset === 0 && $whence === SEEK_SET) {
+            $this->stream->seek($offset, $whence);
+            $this->initializeHash();
+        } else {
+            throw new LogicException('AES encryption streams only support being'
+                . ' rewound, not arbitrary seeking.');
+        }
+    }
+
+    private function initializeHash()
+    {
+        $this->hash = null;
+        $this->hashResource = hash_init(
+            $this->algorithm,
+            $this->key !== null ? HASH_HMAC : 0,
+            $this->key
+        );
     }
 }
