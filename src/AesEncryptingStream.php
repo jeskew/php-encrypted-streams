@@ -19,7 +19,7 @@ class AesEncryptingStream implements StreamInterface
     /**
      * @var CipherMethod
      */
-    private $iv;
+    private $cipherMethod;
 
     /**
      * @var string
@@ -40,17 +40,17 @@ class AesEncryptingStream implements StreamInterface
      * @param StreamInterface $plainText
      * @param string $key
      * @param int $keySize
-     * @param CipherMethod $iv
+     * @param CipherMethod $cipherMethod
      */
     public function __construct(
         StreamInterface $plainText,
         $key,
-        CipherMethod $iv,
+        CipherMethod $cipherMethod,
         $keySize = 256
     ) {
         $this->stream = $plainText;
         $this->key = $key;
-        $this->iv = clone $iv;
+        $this->cipherMethod = clone $cipherMethod;
         $this->keySize = $keySize;
     }
 
@@ -58,7 +58,7 @@ class AesEncryptingStream implements StreamInterface
     {
         $plainTextSize = $this->stream->getSize();
 
-        if ($this->iv->requiresPadding() && $plainTextSize !== null) {
+        if ($this->cipherMethod->requiresPadding() && $plainTextSize !== null) {
             // PKCS7 padding requires that between 1 and self::BLOCK_SIZE be
             // added to the plaintext to make it an even number of blocks.
             $padding = self::BLOCK_SIZE - $plainTextSize % self::BLOCK_SIZE;
@@ -99,7 +99,7 @@ class AesEncryptingStream implements StreamInterface
             $wholeBlockOffset
                 = (int) ($offset / self::BLOCK_SIZE) * self::BLOCK_SIZE;
             $this->stream->seek($wholeBlockOffset);
-            $this->iv->seek($wholeBlockOffset);
+            $this->cipherMethod->seek($wholeBlockOffset);
             $this->read($offset - $wholeBlockOffset);
         } else {
             throw new LogicException('Unrecognized whence.');
@@ -126,13 +126,13 @@ class AesEncryptingStream implements StreamInterface
 
         $cipherText = openssl_encrypt(
             $plainText,
-            "AES-{$this->keySize}-{$this->iv->getName()}",
+            "AES-{$this->keySize}-{$this->cipherMethod->getName()}",
             $this->key,
             $options,
-            $this->iv->getCurrentIv()
+            $this->cipherMethod->getCurrentIv()
         );
 
-        $this->iv->update($cipherText);
+        $this->cipherMethod->update($cipherText);
 
         return $cipherText;
     }
