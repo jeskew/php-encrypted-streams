@@ -12,48 +12,44 @@ class AesDecryptingStreamTest extends \PHPUnit_Framework_TestCase
     use AesEncryptionStreamTestTrait;
 
     /**
-     * @dataProvider cartesianJoinInputCipherMethodKeySizeProvider
+     * @dataProvider cartesianJoinInputCipherMethodProvider
      *
      * @param StreamInterface $plainText
      * @param CipherMethod $iv
-     * @param int $keySize
      */
     public function testStreamOutputSameAsOpenSSL(
         StreamInterface $plainText,
-        CipherMethod $iv,
-        $keySize
+        CipherMethod $iv
     ) {
         $key = 'foo';
         $cipherText = openssl_encrypt(
             (string) $plainText,
-            "AES-{$keySize}-{$iv->getName()}",
+            $iv->getOpenSslName(),
             $key,
             OPENSSL_RAW_DATA,
             $iv->getCurrentIv()
         );
 
         $this->assertSame(
-            (string) new AesDecryptingStream(Psr7\stream_for($cipherText), $key, $iv, $keySize),
+            (string) new AesDecryptingStream(Psr7\stream_for($cipherText), $key, $iv),
             (string) $plainText
         );
     }
 
     /**
-     * @dataProvider cartesianJoinInputCipherMethodKeySizeProvider
+     * @dataProvider cartesianJoinInputCipherMethodProvider
      *
      * @param StreamInterface $plainText
      * @param CipherMethod $iv
-     * @param int $keySize
      */
     public function testReportsSizeOfPlaintextWherePossible(
         StreamInterface $plainText,
-        CipherMethod $iv,
-        $keySize
+        CipherMethod $iv
     ) {
         $key = 'foo';
         $cipherText = openssl_encrypt(
             (string) $plainText,
-            "AES-{$keySize}-{$iv->getName()}",
+            $iv->getOpenSslName(),
             $key,
             OPENSSL_RAW_DATA,
             $iv->getCurrentIv()
@@ -61,8 +57,7 @@ class AesDecryptingStreamTest extends \PHPUnit_Framework_TestCase
         $deciphered = new AesDecryptingStream(
             Psr7\stream_for($cipherText),
             $key,
-            $iv,
-            $keySize
+            $iv
         );
 
         if ($iv->requiresPadding()) {
@@ -73,54 +68,39 @@ class AesDecryptingStreamTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @dataProvider cartesianJoinInputCipherMethodKeySizeProvider
+     * @dataProvider cartesianJoinInputCipherMethodProvider
      *
      * @param StreamInterface $plainText
      * @param CipherMethod $iv
-     * @param int $keySize
      */
     public function testSupportsRewinding(
         StreamInterface $plainText,
-        CipherMethod $iv,
-        $keySize
+        CipherMethod $iv
     ) {
         $key = 'foo';
         $cipherText = openssl_encrypt(
             (string) $plainText,
-            "AES-{$keySize}-{$iv->getName()}",
+            $iv->getOpenSslName(),
             $key,
             OPENSSL_RAW_DATA,
             $iv->getCurrentIv()
         );
-        $deciphered = new AesDecryptingStream(
-            Psr7\stream_for($cipherText),
-            $key,
-            $iv,
-            $keySize
-        );
-        $firstBytes = $deciphered->read($keySize * 2 + 3);
+        $deciphered = new AesDecryptingStream(Psr7\stream_for($cipherText), $key, $iv);
+        $firstBytes = $deciphered->read(256 * 2 + 3);
         $deciphered->rewind();
-        $this->assertSame($firstBytes, $deciphered->read($keySize * 2 + 3));
+        $this->assertSame($firstBytes, $deciphered->read(256 * 2 + 3));
     }
 
     /**
-     * @dataProvider cartesianJoinIvKeySizeProvider
+     * @dataProvider cipherMethodProvider
      *
      * @param CipherMethod $iv
-     * @param int $keySize
      */
-    public function testMemoryUsageRemainsConstant(
-        CipherMethod $iv,
-        $keySize
-    ) {
+    public function testMemoryUsageRemainsConstant(CipherMethod $iv)
+    {
         $memory = memory_get_usage();
 
-        $stream = new AesDecryptingStream(
-            new RandomByteStream(124 * self::MB),
-            'foo',
-            $iv,
-            $keySize
-        );
+        $stream = new AesDecryptingStream(new RandomByteStream(124 * self::MB), 'foo', $iv);
 
         while (!$stream->eof()) {
             $stream->read(self::MB);

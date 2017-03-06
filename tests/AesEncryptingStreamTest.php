@@ -13,25 +13,23 @@ class AesEncryptingStreamTest extends \PHPUnit_Framework_TestCase
     use AesEncryptionStreamTestTrait;
 
     /**
-     * @dataProvider cartesianJoinInputCipherMethodKeySizeProvider
+     * @dataProvider cartesianJoinInputCipherMethodProvider
      *
      * @param StreamInterface $plainText
      * @param CipherMethod $iv
-     * @param int $keySize
      */
     public function testStreamOutputSameAsOpenSSL(
         StreamInterface $plainText,
-        CipherMethod $iv,
-        $keySize
+        CipherMethod $iv
     ) {
         $plainText->rewind();
         $key = 'foo';
 
         $this->assertSame(
-            (string) new AesEncryptingStream($plainText, $key, $iv, $keySize),
+            (string) new AesEncryptingStream($plainText, $key, $iv),
             openssl_encrypt(
                 (string) $plainText,
-                "AES-{$keySize}-{$iv->getName()}",
+                $iv->getOpenSslName(),
                 $key,
                 OPENSSL_RAW_DATA,
                 $iv->getCurrentIv()
@@ -40,58 +38,50 @@ class AesEncryptingStreamTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @dataProvider cartesianJoinInputCipherMethodKeySizeProvider
+     * @dataProvider cartesianJoinInputCipherMethodProvider
      *
      * @param StreamInterface $plainText
      * @param CipherMethod $iv
-     * @param int $keySize
      */
     public function testSupportsRewinding(
         StreamInterface $plainText,
-        CipherMethod $iv,
-        $keySize
+        CipherMethod $iv
     ) {
         $plainText->rewind();
-        $cipherText = new AesEncryptingStream($plainText, 'foo', $iv, $keySize);
-        $firstBytes = $cipherText->read($keySize * 2 + 3);
+        $cipherText = new AesEncryptingStream($plainText, 'foo', $iv);
+        $firstBytes = $cipherText->read(256 * 2 + 3);
         $cipherText->rewind();
-        $this->assertSame($firstBytes, $cipherText->read($keySize * 2 + 3));
+        $this->assertSame($firstBytes, $cipherText->read(256 * 2 + 3));
     }
 
     /**
-     * @dataProvider cartesianJoinInputCipherMethodKeySizeProvider
+     * @dataProvider cartesianJoinInputCipherMethodProvider
      *
      * @param StreamInterface $plainText
      * @param CipherMethod $iv
-     * @param int $keySize
      */
     public function testAccuratelyReportsSizeOfCipherText(
         StreamInterface $plainText,
-        CipherMethod $iv,
-        $keySize
+        CipherMethod $iv
     ) {
         $plainText->rewind();
-        $cipherText = new AesEncryptingStream($plainText, 'foo', $iv, $keySize);
+        $cipherText = new AesEncryptingStream($plainText, 'foo', $iv);
         $this->assertSame($cipherText->getSize(), strlen((string) $cipherText));
     }
 
     /**
-     * @dataProvider cartesianJoinIvKeySizeProvider
+     * @dataProvider cipherMethodProvider
      *
-     * @param CipherMethod $iv
-     * @param int $keySize
+     * @param CipherMethod $cipherMethod
      */
-    public function testMemoryUsageRemainsConstant(
-        CipherMethod $iv,
-        $keySize
-    ) {
+    public function testMemoryUsageRemainsConstant(CipherMethod $cipherMethod)
+    {
         $memory = memory_get_usage();
 
         $stream = new AesDecryptingStream(
             new RandomByteStream(124 * self::MB),
             'foo',
-            $iv,
-            $keySize
+            $cipherMethod
         );
 
         while (!$stream->eof()) {

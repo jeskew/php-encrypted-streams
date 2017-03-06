@@ -5,13 +5,13 @@ class CtrTest extends \PHPUnit_Framework_TestCase
 {
     public function testShouldReportCipherMethodOfCTR()
     {
-        $ivString = random_bytes(openssl_cipher_iv_length('aes-128-ctr'));
-        $this->assertSame('CTR', (new Ctr($ivString))->getName());
+        $ivString = random_bytes(openssl_cipher_iv_length('aes-256-ctr'));
+        $this->assertSame('aes-256-ctr', (new Ctr($ivString))->getOpenSslName());
     }
 
     public function testShouldReturnInitialIvStringForCurrentIvBeforeUpdate()
     {
-        $ivString = random_bytes(openssl_cipher_iv_length('aes-128-ctr'));
+        $ivString = random_bytes(openssl_cipher_iv_length('aes-256-ctr'));
         $iv = new Ctr($ivString);
 
         $this->assertSame($ivString, $iv->getCurrentIv());
@@ -36,12 +36,12 @@ class CtrTest extends \PHPUnit_Framework_TestCase
      */
     public function testShouldThrowWhenIvOfInvalidLengthProvided()
     {
-        new Ctr(random_bytes(openssl_cipher_iv_length('aes-128-ctr') + 1));
+        new Ctr(random_bytes(openssl_cipher_iv_length('aes-256-ctr') + 1));
     }
 
     public function testShouldSupportSeekingToBeginning()
     {
-        $ivString = random_bytes(openssl_cipher_iv_length('aes-128-ctr'));
+        $ivString = random_bytes(openssl_cipher_iv_length('aes-256-ctr'));
         $iv = new Ctr($ivString);
         $cipherTextBlock = random_bytes(1024);
 
@@ -52,7 +52,7 @@ class CtrTest extends \PHPUnit_Framework_TestCase
 
     public function testShouldSupportSeekingFromCurrentPosition()
     {
-        $ivString = random_bytes(openssl_cipher_iv_length('aes-128-ctr'));
+        $ivString = random_bytes(openssl_cipher_iv_length('aes-256-ctr'));
         $iv = new Ctr($ivString);
         $cipherTextBlock = random_bytes(1024);
 
@@ -67,7 +67,7 @@ class CtrTest extends \PHPUnit_Framework_TestCase
      */
     public function testShouldThrowWhenSeekOffsetNotDivisibleByBlockSize()
     {
-        $ivString = random_bytes(openssl_cipher_iv_length('aes-128-ctr'));
+        $ivString = random_bytes(openssl_cipher_iv_length('aes-256-ctr'));
         $iv = new Ctr($ivString);
         $cipherTextBlock = random_bytes(1024);
 
@@ -80,7 +80,7 @@ class CtrTest extends \PHPUnit_Framework_TestCase
      */
     public function testShouldThrowWhenNegativeSeekCurProvidedToSeek()
     {
-        $ivString = random_bytes(openssl_cipher_iv_length('aes-128-ctr'));
+        $ivString = random_bytes(openssl_cipher_iv_length('aes-256-ctr'));
         $iv = new Ctr($ivString);
         $cipherTextBlock = random_bytes(1024);
 
@@ -93,7 +93,7 @@ class CtrTest extends \PHPUnit_Framework_TestCase
      */
     public function testShouldThrowWhenSeekEndProvidedToSeek()
     {
-        $ivString = random_bytes(openssl_cipher_iv_length('aes-128-ctr'));
+        $ivString = random_bytes(openssl_cipher_iv_length('aes-256-ctr'));
         $iv = new Ctr($ivString);
         $cipherTextBlock = random_bytes(1024);
 
