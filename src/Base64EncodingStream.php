@@ -23,7 +23,7 @@ class Base64EncodingStream implements StreamInterface
         $this->stream = $stream;
     }
 
-    public function getSize()
+    public function getSize(): ?int
     {
         $unencodedSize = $this->stream->getSize();
         return $unencodedSize === null
@@ -31,7 +31,7 @@ class Base64EncodingStream implements StreamInterface
             : (int) ceil($unencodedSize / 3) * 4;
     }
 
-    public function read($length)
+    public function read($length): string
     {
         $toRead = ceil($length / 4) * 3;
         $this->buffer .= base64_encode($this->stream->read($toRead));

@@ -23,11 +23,7 @@ class Cbc implements CipherMethod
      */
     private $keySize;
 
-    /**
-     * @param string $iv
-     * @param int $keySize
-     */
-    public function __construct($iv, $keySize = 256)
+    public function __construct(string $iv, int $keySize = 256)
     {
         $this->baseIv = $this->iv = $iv;
         $this->keySize = $keySize;
@@ -37,22 +33,22 @@ class Cbc implements CipherMethod
         }
     }
 
-    public function getOpenSslName()
+    public function getOpenSslName(): string
     {
         return "aes-{$this->keySize}-cbc";
     }
 
-    public function getCurrentIv()
+    public function getCurrentIv(): string
     {
         return $this->iv;
     }
 
-    public function requiresPadding()
+    public function requiresPadding(): bool
     {
         return true;
     }
 
-    public function seek($offset, $whence = SEEK_SET)
+    public function seek(int $offset, int $whence = SEEK_SET): void
     {
         if ($offset === 0 && $whence === SEEK_SET) {
             $this->iv = $this->baseIv;
@@ -62,7 +58,7 @@ class Cbc implements CipherMethod
         }
     }
 
-    public function update($cipherTextBlock)
+    public function update(string $cipherTextBlock): void
     {
         $this->iv = substr($cipherTextBlock, self::BLOCK_SIZE * -1);
     }

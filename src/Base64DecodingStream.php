@@ -23,12 +23,12 @@ class Base64DecodingStream implements StreamInterface
         $this->stream = $stream;
     }
 
-    public function getSize()
+    public function getSize(): ?int
     {
         return null;
     }
 
-    public function read($length)
+    public function read($length): string
     {
         $toRead = ceil($length / 3) * 4;
         $this->buffer .= base64_decode($this->stream->read($toRead));

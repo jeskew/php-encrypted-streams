@@ -23,7 +23,7 @@ class HexDecodingStream implements StreamInterface
         $this->stream = $stream;
     }
 
-    public function getSize()
+    public function getSize(): ?int
     {
         $unencodedSize = $this->stream->getSize();
         return $unencodedSize === null
@@ -31,7 +31,7 @@ class HexDecodingStream implements StreamInterface
             : intval($unencodedSize / 2);
     }
 
-    public function read($length)
+    public function read($length): string
     {
         $this->buffer .= hex2bin($this->stream->read($length * 2));
 

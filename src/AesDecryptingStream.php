@@ -31,14 +31,9 @@ class AesDecryptingStream implements StreamInterface
      */
     private $stream;
 
-    /**
-     * @param StreamInterface $cipherText
-     * @param string $key
-     * @param CipherMethod $cipherMethod
-     */
     public function __construct(
         StreamInterface $cipherText,
-        $key,
+        string $key,
         CipherMethod $cipherMethod
     ) {
         $this->stream = $cipherText;
@@ -46,7 +41,7 @@ class AesDecryptingStream implements StreamInterface
         $this->cipherMethod = clone $cipherMethod;
     }
 
-    public function getSize()
+    public function getSize(): ?int
     {
         $plainTextSize = $this->stream->getSize();
 
@@ -61,12 +56,12 @@ class AesDecryptingStream implements StreamInterface
         return $plainTextSize;
     }
 
-    public function isWritable()
+    public function isWritable(): bool
     {
         return false;
     }
 
-    public function read($length)
+    public function read($length): string
     {
         if ($length > strlen($this->buffer)) {
             $this->buffer .= $this->decryptBlock(
@@ -80,7 +75,7 @@ class AesDecryptingStream implements StreamInterface
         return $data ? $data : '';
     }
 
-    public function seek($offset, $whence = SEEK_SET)
+    public function seek($offset, $whence = SEEK_SET): void
     {
         if ($offset === 0 && $whence === SEEK_SET) {
             $this->buffer = '';
@@ -92,7 +87,7 @@ class AesDecryptingStream implements StreamInterface
         }
     }
 
-    private function decryptBlock($length)
+    private function decryptBlock(int $length): string
     {
         if ($this->stream->eof()) {
             return '';
