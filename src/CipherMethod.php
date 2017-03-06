@@ -6,10 +6,12 @@ use LogicException;
 interface CipherMethod
 {
     /**
-     * Returns an identifier for the cipher method supported by this IV object,
-     * e.g., 'CBC' or 'CTR'
+     * Returns an identifier recognizable by `openssl_*` functions, such as
+     * `aes-256-cbc` or `aes-128-ctr`.
+     *
+     * @return string
      */
-    public function getName();
+    public function getOpenSslName();
 
     /**
      * Returns the IV that should be used to encrypt or decrypt the next block.

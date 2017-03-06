@@ -6,58 +6,15 @@ use GuzzleHttp\Psr7\CachingStream;
 
 trait AesEncryptionStreamTestTrait
 {
-    public function cartesianJoinInputCipherMethodKeySizeProvider()
+    public function cartesianJoinInputCipherMethodProvider()
     {
         $toReturn = [];
         $plainTexts = $this->unwrapProvider([$this, 'plainTextProvider']);
         $ivs = $this->unwrapProvider([$this, 'cipherMethodProvider']);
-        $keySizes = $this->unwrapProvider([$this, 'keySizeProvider']);
 
         for ($i = 0; $i < count($plainTexts); $i++) {
             for ($j = 0; $j < count($ivs); $j++) {
-                for ($k = 0; $k < count($keySizes); $k++) {
-                    $toReturn []= [
-                        $plainTexts[$i],
-                        clone $ivs[$j],
-                        $keySizes[$k],
-                    ];
-                }
-            }
-        }
-
-        return $toReturn;
-    }
-
-    public function cartesianJoinInputKeySizeProvider()
-    {
-        $toReturn = [];
-        $plainTexts = $this->unwrapProvider([$this, 'plainTextProvider']);
-        $keySizes = $this->unwrapProvider([$this, 'keySizeProvider']);
-
-        for ($i = 0; $i < count($plainTexts); $i++) {
-            for ($j = 0; $j < count($keySizes); $j++) {
-                $toReturn []= [
-                    $plainTexts[$i],
-                    $keySizes[$j],
-                ];
-            }
-        }
-
-        return $toReturn;
-    }
-
-    public function cartesianJoinIvKeySizeProvider()
-    {
-        $toReturn = [];
-        $ivs = $this->unwrapProvider([$this, 'cipherMethodProvider']);
-        $keySizes = $this->unwrapProvider([$this, 'keySizeProvider']);
-
-        for ($i = 0; $i < count($ivs); $i++) {
-            for ($j = 0; $j < count($keySizes); $j++) {
-                $toReturn []= [
-                    clone $ivs[$i],
-                    $keySizes[$j],
-                ];
+                $toReturn []= [$plainTexts[$i], clone $ivs[$j]];
             }
         }
 
@@ -66,11 +23,20 @@ trait AesEncryptionStreamTestTrait
 
     public function cipherMethodProvider()
     {
-        return [
-            [new Cbc(random_bytes(openssl_cipher_iv_length('aes-256-cbc')))],
-            [new Ctr(random_bytes(openssl_cipher_iv_length('aes-256-ctr')))],
-            [new Ecb()],
-        ];
+        $toReturn = [];
+        foreach ($this->unwrapProvider([$this, 'keySizeProvider']) as $keySize) {
+            $toReturn []= [new Cbc(
+                random_bytes(openssl_cipher_iv_length('aes-256-cbc')),
+                $keySize
+            )];
+            $toReturn []= [new Ctr(
+                random_bytes(openssl_cipher_iv_length('aes-256-ctr')),
+                $keySize
+            )];
+            $toReturn []= [new Ecb($keySize)];
+        }
+
+        return $toReturn;
     }
 
     public function seekableCipherMethodProvider()

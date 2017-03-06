@@ -22,22 +22,28 @@ class Ctr implements CipherMethod
     private $ctrOffset;
 
     /**
-     * @param string $iv
+     * @var int
      */
-    public function __construct($iv)
+    private $keySize;
+
+    /**
+     * @param string $iv
+     * @param int $keySize
+     */
+    public function __construct($iv, $keySize = 256)
     {
-        if (strlen($iv) !== openssl_cipher_iv_length('aes-128-ctr')) {
-            throw new InvalidArgumentException('Invalid initialization veector'
-                . ' provided to ' . static::class);
+        $this->keySize = $keySize;
+        if (strlen($iv) !== openssl_cipher_iv_length($this->getOpenSslName())) {
+            throw new InvalidArgumentException('Invalid initialization vector');
         }
 
         $this->iv = $this->extractIvParts($iv);
         $this->resetOffset();
     }
 
-    public function getName()
+    public function getOpenSslName()
     {
-        return 'CTR';
+        return "aes-{$this->keySize}-ctr";
     }
 
     public function getCurrentIv()

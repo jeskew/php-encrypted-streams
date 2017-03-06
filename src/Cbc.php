@@ -1,7 +1,7 @@
 <?php
 namespace Jsq\EncryptionStreams;
 
-use InvalidArgumentException;
+use InvalidArgumentException as Iae;
 use LogicException;
 
 class Cbc implements CipherMethod
@@ -19,20 +19,27 @@ class Cbc implements CipherMethod
     private $iv;
 
     /**
-     * @param string $iv
+     * @var int
      */
-    public function __construct($iv)
+    private $keySize;
+
+    /**
+     * @param string $iv
+     * @param int $keySize
+     */
+    public function __construct($iv, $keySize = 256)
     {
-        if (strlen($iv) !== openssl_cipher_iv_length('aes-128-cbc')) {
-            throw new InvalidArgumentException('Invalid initialization veector'
-                . ' provided to ' . static::class);
-        }
         $this->baseIv = $this->iv = $iv;
+        $this->keySize = $keySize;
+
+        if (strlen($iv) !== openssl_cipher_iv_length($this->getOpenSslName())) {
+            throw new Iae('Invalid initialization vector');
+        }
     }
 
-    public function getName()
+    public function getOpenSslName()
     {
-        return 'CBC';
+        return "aes-{$this->keySize}-cbc";
     }
 
     public function getCurrentIv()

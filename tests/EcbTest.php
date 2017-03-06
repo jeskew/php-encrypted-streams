@@ -5,7 +5,7 @@ class EcbTest extends \PHPUnit_Framework_TestCase
 {
     public function testShouldReportCipherMethodOfECB()
     {
-        $this->assertSame('ECB', (new Ecb)->getName());
+        $this->assertSame('aes-256-ecb', (new Ecb)->getOpenSslName());
     }
 
     public function testShouldReturnEmptyStringForCurrentIv()

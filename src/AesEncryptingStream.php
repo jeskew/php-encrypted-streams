@@ -27,11 +27,6 @@ class AesEncryptingStream implements StreamInterface
     private $key;
 
     /**
-     * @var int
-     */
-    private $keySize;
-
-    /**
      * @var StreamInterface
      */
     private $stream;
@@ -39,19 +34,16 @@ class AesEncryptingStream implements StreamInterface
     /**
      * @param StreamInterface $plainText
      * @param string $key
-     * @param int $keySize
      * @param CipherMethod $cipherMethod
      */
     public function __construct(
         StreamInterface $plainText,
         $key,
-        CipherMethod $cipherMethod,
-        $keySize = 256
+        CipherMethod $cipherMethod
     ) {
         $this->stream = $plainText;
         $this->key = $key;
         $this->cipherMethod = clone $cipherMethod;
-        $this->keySize = $keySize;
     }
 
     public function getSize()
@@ -126,7 +118,7 @@ class AesEncryptingStream implements StreamInterface
 
         $cipherText = openssl_encrypt(
             $plainText,
-            "AES-{$this->keySize}-{$this->cipherMethod->getName()}",
+            $this->cipherMethod->getOpenSslName(),
             $this->key,
             $options,
             $this->cipherMethod->getCurrentIv()
