@@ -1,7 +1,9 @@
 <?php
 namespace Jsq\EncryptionStreams;
 
-class CtrTest extends \PHPUnit_Framework_TestCase
+use PHPUnit\Framework\TestCase;
+
+class CtrTest extends TestCase
 {
     public function testShouldReportCipherMethodOfCTR()
     {

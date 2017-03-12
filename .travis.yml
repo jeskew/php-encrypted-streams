@@ -7,12 +7,19 @@ php:
   - 7.1
   - hhvm
 
+env:
+  - COMPOSER_OPTS=""
+  - COMPOSER_OPTS="--prefer-lowest"
+
 sudo: false
 
 matrix:
   fast_finish: true
 
 install:
-  - travis_retry composer update --no-interaction --prefer-source
+  - travis_retry composer update $COMPOSER_OPTS --no-interaction --prefer-source
 
-script: vendor/bin/phpunit -v --coverage-text
+script: vendor/bin/phpunit --coverage-clover=coverage.xml
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)

@@ -1,7 +1,9 @@
 <?php
 namespace Jsq\EncryptionStreams;
 
-class CbcTest extends \PHPUnit_Framework_TestCase
+use PHPUnit\Framework\TestCase;
+
+class CbcTest extends TestCase
 {
     public function testShouldReportCipherMethodOfCBC()
     {

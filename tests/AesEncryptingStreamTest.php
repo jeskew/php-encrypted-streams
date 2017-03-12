@@ -2,9 +2,10 @@
 namespace Jsq\EncryptionStreams;
 
 use GuzzleHttp\Psr7;
+use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\StreamInterface;
 
-class AesEncryptingStreamTest extends \PHPUnit_Framework_TestCase
+class AesEncryptingStreamTest extends TestCase
 {
 
     const KB = 1024;

@@ -1,7 +1,9 @@
 <?php
 namespace Jsq\EncryptionStreams;
 
-class EcbTest extends \PHPUnit_Framework_TestCase
+use PHPUnit\Framework\TestCase;
+
+class EcbTest extends TestCase
 {
     public function testShouldReportCipherMethodOfECB()
     {
