@@ -2,8 +2,9 @@
 namespace Jsq\EncryptionStreams;
 
 use GuzzleHttp\Psr7;
+use PHPUnit\Framework\TestCase;
 
-class HashingStreamTest extends \PHPUnit_Framework_TestCase
+class HashingStreamTest extends TestCase
 {
     /**
      * @dataProvider hashAlgorithmProvider

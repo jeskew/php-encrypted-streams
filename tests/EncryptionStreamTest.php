@@ -3,9 +3,10 @@ namespace Jsq\EncryptionStreams;
 
 use GuzzleHttp\Psr7;
 use GuzzleHttp\Psr7\CachingStream;
+use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\StreamInterface;
 
-abstract class EncryptionStreamTest extends \PHPUnit_Framework_TestCase
+abstract class EncryptionStreamTest extends TestCase
 {
     const KB = 1024;
     const MB = 1048576;
