@@ -107,7 +107,8 @@ class AesDecryptingStreamTest extends TestCase
             $stream->read(self::MB);
         }
 
-        $this->assertLessThanOrEqual($memory + self::MB, memory_get_usage());
+        // Reading 1MB chunks should take 2MB
+        $this->assertLessThanOrEqual($memory + 2 * self::MB, memory_get_usage());
     }
 
     public function testIsNotWritable()
