@@ -25,7 +25,7 @@ decorator to incrementally encrypt the contents of the decorated stream as
 `read` is called on the decorating stream:
 
 ```php
-$iv = new Jsq\EncryptionStreams\CbcIv(
+$cipherMethod = new Jsq\EncryptionStreams\Cbc(
     random_bytes(openssl_cipher_iv_length('aes-256-cbc'))
 );
 $key = ... // a symmetric encryption key 
@@ -35,7 +35,7 @@ $plaintext = new GuzzleHttp\Psr7\LazyOpenStream('/path/to/a/massive/file', 'r+);
 $ciphertext = new Jsq\EncryptionStreams\AesEncryptingStream(
     $plaintext,
     $key,
-    $iv
+    $cipherMethod
 );
 
 $encryptedChunk = $ciphertext->read(1024 * 1024);
@@ -51,7 +51,7 @@ $hash = null;
 $ciphertext = new Jsq\EncryptionStreams\AesEncryptingStream(
     $plaintext,
     $key,
-    $iv
+    $cipherMethod
 );
 $hashingDecorator = new Jsq\EncryptionStreams\HashingStream(
     $ciphertext,
@@ -94,8 +94,13 @@ $hashingDecorator = new Jsq\EncryptingStreams\HashingStream(
     }
 );
 
-while (!$ciphertext->eof()) {
-    $ciphertext->read(1024 * 1024);
+$decrypted = new Jsq\EncryptionStreams\AesEncryptingStream(
+    $cipherText,
+    $key,
+    $cipherMethod
+);
+while (!$decrypted->eof()) {
+    $decrypted->read(1024 * 1024);
 }
 ```
 
