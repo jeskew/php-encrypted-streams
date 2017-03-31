@@ -2,6 +2,7 @@
 namespace Jsq\EncryptionStreams;
 
 use GuzzleHttp\Psr7;
+use GuzzleHttp\Psr7\PumpStream;
 use PHPUnit\Framework\TestCase;
 
 class HexEncodingStreamTest extends TestCase
@@ -22,6 +23,16 @@ class HexEncodingStreamTest extends TestCase
         $encodingStream = new HexEncodingStream(Psr7\stream_for($bytes));
 
         $this->assertSame(strlen(bin2hex($bytes)), $encodingStream->getSize());
+    }
+
+    public function testShouldReportNullIfSizeOfSourceStreamUnknown()
+    {
+        $stream = new PumpStream(function ($length) {
+            return random_bytes($length);
+        });
+        $encodingStream = new HexEncodingStream($stream);
+
+        $this->assertNull($encodingStream->getSize());
     }
 
     public function testMemoryUsageRemainsConstant()
