@@ -34,17 +34,11 @@ class HashingStream implements StreamInterface
 
     private $algorithm;
 
-    /**
-     * @param StreamInterface $stream
-     * @param string|null $key
-     * @param callable|null $onComplete
-     * @param string $algorithm
-     */
     public function __construct(
         StreamInterface $stream,
-        $key = null,
-        callable $onComplete = null,
-        $algorithm = 'sha256'
+        ?string $key = null,
+        ?callable $onComplete = null,
+        string $algorithm = 'sha256'
     ){
         $this->stream = $stream;
         $this->key = $key;
@@ -57,15 +51,13 @@ class HashingStream implements StreamInterface
     /**
      * Returns the raw binary hash of the wrapped stream if it has been read.
      * Returns null otherwise.
-     *
-     * @return string|null
      */
-    public function getHash()
+    public function getHash(): ?string
     {
         return $this->hash;
     }
 
-    public function read($length)
+    public function read($length): string
     {
         $read = $this->stream->read($length);
         if (strlen($read) > 0) {
@@ -81,7 +73,7 @@ class HashingStream implements StreamInterface
         return $read;
     }
 
-    public function seek($offset, $whence = SEEK_SET)
+    public function seek($offset, $whence = SEEK_SET): void
     {
         if ($offset === 0 && $whence === SEEK_SET) {
             $this->stream->seek($offset, $whence);
@@ -92,7 +84,7 @@ class HashingStream implements StreamInterface
         }
     }
 
-    private function initializeHash()
+    private function initializeHash(): void
     {
         $this->hash = null;
         $this->hashResource = hash_init(

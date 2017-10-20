@@ -11,27 +11,27 @@ class Ecb implements CipherMethod
     /**
      * @param int $keySize
      */
-    public function __construct($keySize = 256)
+    public function __construct(int $keySize = 256)
     {
         $this->keySize = $keySize;
     }
 
-    public function getOpenSslName()
+    public function getOpenSslName(): string
     {
         return "aes-{$this->keySize}-ecb";
     }
 
-    public function getCurrentIv()
+    public function getCurrentIv(): string
     {
         return '';
     }
 
-    public function requiresPadding()
+    public function requiresPadding(): bool
     {
         return true;
     }
 
-    public function seek($offset, $whence = SEEK_SET) {}
+    public function seek(int $offset, int $whence = SEEK_SET): void {}
 
-    public function update($cipherTextBlock) {}
+    public function update(string $cipherTextBlock): void {}
 }

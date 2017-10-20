@@ -21,6 +21,24 @@ trait AesEncryptionStreamTestTrait
         return $toReturn;
     }
 
+    public function cartesianJoinInputKeySizeProvider()
+    {
+        $toReturn = [];
+        $plainTexts = $this->unwrapProvider([$this, 'plainTextProvider']);
+        $keySizes = $this->unwrapProvider([$this, 'keySizeProvider']);
+
+        for ($i = 0; $i < count($plainTexts); $i++) {
+            for ($j = 0; $j < count($keySizes); $j++) {
+                $toReturn []= [
+                    $plainTexts[$i],
+                    $keySizes[$j],
+                ];
+            }
+        }
+
+        return $toReturn;
+    }
+
     public function cipherMethodProvider()
     {
         $toReturn = [];

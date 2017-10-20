@@ -26,11 +26,7 @@ class Ctr implements CipherMethod
      */
     private $keySize;
 
-    /**
-     * @param string $iv
-     * @param int $keySize
-     */
-    public function __construct($iv, $keySize = 256)
+    public function __construct(string $iv, int $keySize = 256)
     {
         $this->keySize = $keySize;
         if (strlen($iv) !== openssl_cipher_iv_length($this->getOpenSslName())) {
@@ -41,22 +37,22 @@ class Ctr implements CipherMethod
         $this->resetOffset();
     }
 
-    public function getOpenSslName()
+    public function getOpenSslName(): string
     {
         return "aes-{$this->keySize}-ctr";
     }
 
-    public function getCurrentIv()
+    public function getCurrentIv(): string
     {
         return $this->calculateCurrentIv($this->iv, $this->ctrOffset);
     }
 
-    public function requiresPadding()
+    public function requiresPadding(): bool
     {
         return false;
     }
 
-    public function seek($offset, $whence = SEEK_SET)
+    public function seek(int $offset, int $whence = SEEK_SET): void
     {
         if ($offset % self::BLOCK_SIZE !== 0) {
             throw new LogicException('CTR initialization vectors only support '
@@ -78,7 +74,7 @@ class Ctr implements CipherMethod
         }
     }
 
-    public function update($cipherTextBlock)
+    public function update(string $cipherTextBlock): void
     {
         $this->incrementOffset(strlen($cipherTextBlock) / self::BLOCK_SIZE);
     }
@@ -87,7 +83,7 @@ class Ctr implements CipherMethod
      * @param string $iv
      * @return int[]
      */
-    private function extractIvParts($iv)
+    private function extractIvParts(string $iv): array
     {
         return array_map(function ($part) {
             return unpack('nnum', $part)['num'];
@@ -99,7 +95,7 @@ class Ctr implements CipherMethod
      * @param int[] $ctrOffset
      * @return string
      */
-    private function calculateCurrentIv(array $baseIv, array $ctrOffset)
+    private function calculateCurrentIv(array $baseIv, array $ctrOffset): string
     {
         $iv = array_fill(0, 8, 0);
         $carry = 0;
@@ -114,7 +110,7 @@ class Ctr implements CipherMethod
         }, $iv));
     }
 
-    private function incrementOffset($incrementBy)
+    private function incrementOffset(int $incrementBy): void
     {
         for ($i = 7; $i >= 0; $i--) {
             $incrementedBlock = $this->ctrOffset[$i] + $incrementBy;
@@ -123,7 +119,7 @@ class Ctr implements CipherMethod
         }
     }
 
-    private function resetOffset()
+    private function resetOffset(): void
     {
         $this->ctrOffset = array_fill(0, 8, 0);
     }
