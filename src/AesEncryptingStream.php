@@ -17,6 +17,11 @@ class AesEncryptingStream implements StreamInterface
     private $buffer = '';
 
     /**
+     * @var string
+     */
+    private $plainBuffer;
+
+    /**
      * @var CipherMethod
      */
     private $cipherMethod;
@@ -104,15 +109,20 @@ class AesEncryptingStream implements StreamInterface
             return '';
         }
 
-        $plainText = '';
+        $plainText = $this->plainBuffer;
         do {
             $plainText .= $this->stream->read($length - strlen($plainText));
         } while (strlen($plainText) < $length && !$this->stream->eof());
 
+        // Ensure eof returns the correct value. See https://www.php.net/manual/en/function.feof.php#67261
+        $this->plainBuffer = $this->stream->read(1);
+
+        if ($plainText === '') {
+            return '';
+        }
+
         $options = OPENSSL_RAW_DATA;
-        if (!$this->stream->eof()
-            || $this->stream->getSize() !== $this->stream->tell()
-        ) {
+        if (!$this->stream->eof()) {
             $options |= OPENSSL_ZERO_PADDING;
         }
 
