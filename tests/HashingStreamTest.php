@@ -2,6 +2,7 @@
 namespace Jsq\EncryptionStreams;
 
 use GuzzleHttp\Psr7;
+use http\Exception\RuntimeException;
 use PHPUnit\Framework\TestCase;
 
 class HashingStreamTest extends TestCase
@@ -32,7 +33,7 @@ class HashingStreamTest extends TestCase
     }
 
     /**
-     * @dataProvider hashAlgorithmProvider
+     * @dataProvider hmacAlgorithmProvider
      *
      * @param string $algorithm
      */
@@ -62,7 +63,7 @@ class HashingStreamTest extends TestCase
     }
 
     /**
-     * @dataProvider hashAlgorithmProvider
+     * @dataProvider hmacAlgorithmProvider
      *
      * @param string $algorithm
      */
@@ -89,6 +90,23 @@ class HashingStreamTest extends TestCase
         $instance->getContents();
 
         $this->assertSame(2, $callCount);
+    }
+
+    public function hmacAlgorithmProvider()
+    {
+        $cryptoHashes = [];
+        foreach (hash_algos() as $algo) {
+            // As of PHP 7.2, feeding a non-cryptographic hashing
+            // algorithm to `hash_init` will trigger an error, and
+            // feeding one to `hash_hmac` will cause the function to
+            // return `false`.
+            // cf https://www.php.net/manual/en/migration72.incompatible.php#migration72.incompatible.hash-functions
+            if (@hash_hmac($algo, 'data', 'secret key')) {
+                $cryptoHashes []= [$algo];
+            }
+        }
+
+        return $cryptoHashes;
     }
 
     public function hashAlgorithmProvider()
