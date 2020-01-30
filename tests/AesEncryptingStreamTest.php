@@ -128,6 +128,37 @@ class AesEncryptingStreamTest extends TestCase
      * @dataProvider cipherMethodProvider
      *
      * @param CipherMethod $cipherMethod
+     */
+    public function testDoesOutputsPaddingWhenReadingTheExactBlockLength(
+        CipherMethod $cipherMethod
+    ){
+        $string = 'test';
+        $key = 'foo';
+
+        $stream = new AesEncryptingStream(
+            Psr7\stream_for($string),
+            $key,
+            $cipherMethod
+        );
+
+        $readLength = $cipherMethod->requiresPadding() ? 16 * ceil(strlen($string) / 16) : strlen($string);
+
+        $openSSLEncrypted = openssl_encrypt(
+            $string,
+            $cipherMethod->getOpenSslName(),
+            $key,
+            OPENSSL_RAW_DATA,
+            $cipherMethod->getCurrentIv()
+        );
+
+        $this->assertSame($openSSLEncrypted, $stream->read($readLength));
+        $this->assertSame($stream->read($readLength), '');
+    }
+
+    /**
+     * @dataProvider cipherMethodProvider
+     *
+     * @param CipherMethod $cipherMethod
      *
      * @expectedException \LogicException
      */

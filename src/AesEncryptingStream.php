@@ -4,6 +4,7 @@ namespace Jsq\EncryptionStreams;
 use GuzzleHttp\Psr7\StreamDecoratorTrait;
 use LogicException;
 use Psr\Http\Message\StreamInterface;
+use function GuzzleHttp\Psr7\str;
 
 class AesEncryptingStream implements StreamInterface
 {
@@ -19,7 +20,7 @@ class AesEncryptingStream implements StreamInterface
     /**
      * @var string
      */
-    private $plainBuffer;
+    private $plainBuffer = '';
 
     /**
      * @var CipherMethod
@@ -87,12 +88,14 @@ class AesEncryptingStream implements StreamInterface
     public function seek($offset, $whence = SEEK_SET)
     {
         if ($whence === SEEK_CUR) {
+            $offset -= strlen($this->plainBuffer);
             $offset = $this->tell() + $offset;
             $whence = SEEK_SET;
         }
 
         if ($whence === SEEK_SET) {
             $this->buffer = '';
+            $this->plainBuffer = '';
             $wholeBlockOffset
                 = (int) ($offset / self::BLOCK_SIZE) * self::BLOCK_SIZE;
             $this->stream->seek($wholeBlockOffset);
@@ -116,10 +119,6 @@ class AesEncryptingStream implements StreamInterface
 
         // Ensure eof returns the correct value. See https://www.php.net/manual/en/function.feof.php#67261
         $this->plainBuffer = $this->stream->read(1);
-
-        if ($plainText === '') {
-            return '';
-        }
 
         $options = OPENSSL_RAW_DATA;
         if (!$this->stream->eof()) {

@@ -19,7 +19,7 @@ class AesDecryptingStream implements StreamInterface
     /**
      * @var string
      */
-    private $cipherBuffer;
+    private $cipherBuffer = '';
 
     /**
      * @var CipherMethod
@@ -89,6 +89,7 @@ class AesDecryptingStream implements StreamInterface
     {
         if ($offset === 0 && $whence === SEEK_SET) {
             $this->buffer = '';
+            $this->cipherBuffer = '';
             $this->cipherMethod->seek(0, SEEK_SET);
             $this->stream->seek(0, SEEK_SET);
         } else {
@@ -104,6 +105,7 @@ class AesDecryptingStream implements StreamInterface
         }
 
         $cipherText = $this->cipherBuffer;
+
         do {
             $cipherText .= $this->stream->read($length - strlen($cipherText));
         } while (strlen($cipherText) < $length && !$this->stream->eof());

@@ -149,4 +149,35 @@ class AesDecryptingStreamTest extends TestCase
         $this->assertEmpty($stream->read(self::MB));
         $this->assertSame($stream->read(self::MB), '');
     }
+
+    /**
+     * @dataProvider cipherMethodProvider
+     *
+     * @param CipherMethod $cipherMethod
+     */
+    public function testDoesNotOutputPaddingWhenReadingTheExactBlockLengthOnANonClosedStream(
+        CipherMethod $cipherMethod
+    ){
+        $string = 'test';
+        $key = 'foo';
+
+        $cipherText = openssl_encrypt(
+            $string,
+            $cipherMethod->getOpenSslName(),
+            $key,
+            $cipherMethod->requiresPadding() ? OPENSSL_RAW_DATA : OPENSSL_RAW_DATA|OPENSSL_ZERO_PADDING,
+            $cipherMethod->getCurrentIv()
+        );
+
+        $stream = new AesDecryptingStream(
+            Psr7\stream_for($cipherText),
+            $key,
+            $cipherMethod
+        );
+
+        $readLength = $cipherMethod->requiresPadding() ? 16 * ceil(strlen($string) / 16) : strlen($string);
+
+        $this->assertSame($string, $stream->read($readLength));
+        $this->assertSame($stream->read($readLength), '');
+    }
 }
