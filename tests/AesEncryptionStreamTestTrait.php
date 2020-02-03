@@ -97,6 +97,7 @@ trait AesEncryptionStreamTestTrait
             ['The rain in Spain falls mainly on the plain.'],
             ['دست‌نوشته‌ها نمی‌سوزند'],
             ['Рукописи не горят'],
+            ['test'],
             [random_bytes(AesEncryptingStream::BLOCK_SIZE)],
             [random_bytes(2 * 1024 * 1024)],
             [random_bytes(2 * 1024 * 1024 + 11)],
