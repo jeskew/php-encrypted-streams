@@ -12,20 +12,17 @@ class AesGcmEncryptingStreamTest extends TestCase
     /**
      * @dataProvider cartesianJoinInputKeySizeProvider
      *
-     * @param StreamInterface $plainText
+     * @param StreamInterface $plainTextStream
+     * @param string $plainText
      * @param int $keySize
      */
-    public function testStreamOutputSameAsOpenSSL(
-        StreamInterface $plainText,
-        $keySize
-    ) {
-        $plainText->rewind();
+    public function testStreamOutputSameAsOpenSSL(StreamInterface $plainTextStream, string $plainText, $keySize) {
         $key = 'foo';
         $iv = random_bytes(openssl_cipher_iv_length('aes-256-gcm'));
         $additionalData = json_encode(['foo' => 'bar']);
         $tag = null;
         $encryptingStream = new AesGcmEncryptingStream(
-            $plainText,
+            $plainTextStream,
             $key,
             $iv,
             $additionalData,
@@ -36,7 +33,7 @@ class AesGcmEncryptingStreamTest extends TestCase
         $this->assertSame(
             (string) $encryptingStream,
             openssl_encrypt(
-                (string) $plainText,
+                $plainText,
                 "aes-{$keySize}-gcm",
                 $key,
                 OPENSSL_RAW_DATA,

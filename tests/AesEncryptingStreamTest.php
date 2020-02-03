@@ -16,58 +16,73 @@ class AesEncryptingStreamTest extends TestCase
     /**
      * @dataProvider cartesianJoinInputCipherMethodProvider
      *
-     * @param StreamInterface $plainText
+     * @param StreamInterface $plainTextStream
+     * @param string $plainText
      * @param CipherMethod $iv
      */
     public function testStreamOutputSameAsOpenSSL(
-        StreamInterface $plainText,
+        StreamInterface $plainTextStream,
+        string $plainText,
         CipherMethod $iv
     ) {
-        $plainText->rewind();
         $key = 'foo';
 
         $this->assertSame(
-            (string) new AesEncryptingStream($plainText, $key, $iv),
             openssl_encrypt(
-                (string) $plainText,
+                $plainText,
                 $iv->getOpenSslName(),
                 $key,
                 OPENSSL_RAW_DATA,
                 $iv->getCurrentIv()
-            )
+            ),
+            (string) new AesEncryptingStream(
+                $plainTextStream,
+                $key,
+                $iv
+            ),
         );
     }
 
     /**
      * @dataProvider cartesianJoinInputCipherMethodProvider
      *
-     * @param StreamInterface $plainText
+     * @param StreamInterface $plainTextStream
+     * @param string $plainText
      * @param CipherMethod $iv
      */
     public function testSupportsRewinding(
-        StreamInterface $plainText,
+        StreamInterface $plainTextStream,
+        string $plainText,
         CipherMethod $iv
     ) {
-        $plainText->rewind();
-        $cipherText = new AesEncryptingStream($plainText, 'foo', $iv);
-        $firstBytes = $cipherText->read(256 * 2 + 3);
-        $cipherText->rewind();
-        $this->assertSame($firstBytes, $cipherText->read(256 * 2 + 3));
+        if (!$plainTextStream->isSeekable()) {
+            $this->markTestSkipped('Cannot rewind encryption streams whose plaintext is not seekable');
+        } else {
+            $cipherText = new AesEncryptingStream($plainTextStream, 'foo', $iv);
+            $firstBytes = $cipherText->read(256 * 2 + 3);
+            $cipherText->rewind();
+            $this->assertSame($firstBytes, $cipherText->read(256 * 2 + 3));
+        }
     }
 
     /**
      * @dataProvider cartesianJoinInputCipherMethodProvider
      *
-     * @param StreamInterface $plainText
+     * @param StreamInterface $plainTextStream
+     * @param string $plainText
      * @param CipherMethod $iv
      */
     public function testAccuratelyReportsSizeOfCipherText(
-        StreamInterface $plainText,
+        StreamInterface $plainTextStream,
+        string $plainText,
         CipherMethod $iv
     ) {
-        $plainText->rewind();
-        $cipherText = new AesEncryptingStream($plainText, 'foo', $iv);
-        $this->assertSame($cipherText->getSize(), strlen((string) $cipherText));
+        if ($plainTextStream->getSize() === null) {
+            $this->markTestSkipped('Cannot read text of ciphertext stream when plaintext stream size is unknown');
+        } else {
+            $cipherText = new AesEncryptingStream($plainTextStream, 'foo', $iv);
+            $this->assertSame($cipherText->getSize(), strlen((string) $cipherText));
+        }
     }
 
     /**
@@ -118,7 +133,7 @@ class AesEncryptingStreamTest extends TestCase
             $cipherMethod
         );
 
-        $paddingLength = $cipherMethod->requiresPadding() ? 16 : 0;
+        $paddingLength = $cipherMethod->requiresPadding() ? AesEncryptingStream::BLOCK_SIZE : 0;
 
         $this->assertSame($paddingLength, strlen($stream->read(self::MB)));
         $this->assertSame($stream->read(self::MB), '');

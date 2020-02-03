@@ -15,16 +15,18 @@ class AesDecryptingStreamTest extends TestCase
     /**
      * @dataProvider cartesianJoinInputCipherMethodProvider
      *
-     * @param StreamInterface $plainText
+     * @param StreamInterface $plainTextStream
+     * @param string $plainText
      * @param CipherMethod $iv
      */
     public function testStreamOutputSameAsOpenSSL(
-        StreamInterface $plainText,
+        StreamInterface $plainTextStream,
+        string $plainText,
         CipherMethod $iv
     ) {
         $key = 'foo';
         $cipherText = openssl_encrypt(
-            (string) $plainText,
+            $plainText,
             $iv->getOpenSslName(),
             $key,
             OPENSSL_RAW_DATA,
@@ -33,23 +35,25 @@ class AesDecryptingStreamTest extends TestCase
 
         $this->assertSame(
             (string) new AesDecryptingStream(Psr7\stream_for($cipherText), $key, $iv),
-            (string) $plainText
+            $plainText
         );
     }
 
     /**
      * @dataProvider cartesianJoinInputCipherMethodProvider
      *
-     * @param StreamInterface $plainText
+     * @param StreamInterface $plainTextStream
+     * @param string $plainText
      * @param CipherMethod $iv
      */
     public function testReportsSizeOfPlaintextWherePossible(
-        StreamInterface $plainText,
+        StreamInterface $plainTextStream,
+        string $plainText,
         CipherMethod $iv
     ) {
         $key = 'foo';
         $cipherText = openssl_encrypt(
-            (string) $plainText,
+            $plainText,
             $iv->getOpenSslName(),
             $key,
             OPENSSL_RAW_DATA,
@@ -64,23 +68,25 @@ class AesDecryptingStreamTest extends TestCase
         if ($iv->requiresPadding()) {
             $this->assertNull($deciphered->getSize());
         } else {
-            $this->assertSame($plainText->getSize(), $deciphered->getSize());
+            $this->assertSame(strlen($plainText), $deciphered->getSize());
         }
     }
 
     /**
      * @dataProvider cartesianJoinInputCipherMethodProvider
      *
-     * @param StreamInterface $plainText
+     * @param StreamInterface $plainTextStream
+     * @param string $plainText
      * @param CipherMethod $iv
      */
     public function testSupportsRewinding(
-        StreamInterface $plainText,
+        StreamInterface $plainTextStream,
+        string $plainText,
         CipherMethod $iv
     ) {
         $key = 'foo';
         $cipherText = openssl_encrypt(
-            (string) $plainText,
+            $plainText,
             $iv->getOpenSslName(),
             $key,
             OPENSSL_RAW_DATA,
