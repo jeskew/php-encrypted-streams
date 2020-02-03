@@ -14,7 +14,12 @@ class AesDecryptingStream implements StreamInterface
     /**
      * @var string
      */
-    private $buffer = '';
+    private $plainBuffer = '';
+
+    /**
+     * @var string
+     */
+    private $cipherBuffer = '';
 
     /**
      * @var CipherMethod
@@ -41,6 +46,11 @@ class AesDecryptingStream implements StreamInterface
         $this->cipherMethod = clone $cipherMethod;
     }
 
+    public function eof()
+    {
+        return $this->cipherBuffer === '' && $this->stream->eof();
+    }
+
     public function getSize(): ?int
     {
         $plainTextSize = $this->stream->getSize();
@@ -63,14 +73,14 @@ class AesDecryptingStream implements StreamInterface
 
     public function read($length): string
     {
-        if ($length > strlen($this->buffer)) {
-            $this->buffer .= $this->decryptBlock(
-                self::BLOCK_SIZE * ceil(($length - strlen($this->buffer)) / self::BLOCK_SIZE)
+        if ($length > strlen($this->plainBuffer)) {
+            $this->plainBuffer .= $this->decryptBlock(
+                self::BLOCK_SIZE * ceil(($length - strlen($this->plainBuffer)) / self::BLOCK_SIZE)
             );
         }
 
-        $data = substr($this->buffer, 0, $length);
-        $this->buffer = substr($this->buffer, $length);
+        $data = substr($this->plainBuffer, 0, $length);
+        $this->plainBuffer = substr($this->plainBuffer, $length);
 
         return $data ? $data : '';
     }
@@ -78,7 +88,8 @@ class AesDecryptingStream implements StreamInterface
     public function seek($offset, $whence = SEEK_SET): void
     {
         if ($offset === 0 && $whence === SEEK_SET) {
-            $this->buffer = '';
+            $this->plainBuffer = '';
+            $this->cipherBuffer = '';
             $this->cipherMethod->seek(0, SEEK_SET);
             $this->stream->seek(0, SEEK_SET);
         } else {
@@ -89,17 +100,18 @@ class AesDecryptingStream implements StreamInterface
 
     private function decryptBlock(int $length): string
     {
-        if ($this->stream->eof()) {
+        if ($this->cipherBuffer === '' && $this->stream->eof()) {
             return '';
         }
 
-        $cipherText = '';
-        do {
+        $cipherText = $this->cipherBuffer;
+        while (strlen($cipherText) < $length && !$this->stream->eof()) {
             $cipherText .= $this->stream->read($length - strlen($cipherText));
-        } while (strlen($cipherText) < $length && !$this->stream->eof());
+        }
 
         $options = OPENSSL_RAW_DATA;
-        if (!$this->stream->eof()) {
+        $this->cipherBuffer = $this->stream->read(self::BLOCK_SIZE);
+        if ($this->cipherBuffer !== '' && !$this->stream->eof()) {
             $options |= OPENSSL_ZERO_PADDING;
         }
 

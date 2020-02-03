@@ -79,6 +79,31 @@ class AesDecryptingStreamTest extends TestCase
      * @param string $plainText
      * @param CipherMethod $iv
      */
+    public function testSupportsReadingBeyondTheEndOfTheStream(
+        StreamInterface $plainTextStream,
+        string $plainText,
+        CipherMethod $iv
+    ) {
+        $key = 'foo';
+        $cipherText = openssl_encrypt(
+            $plainText,
+            $iv->getOpenSslName(),
+            $key,
+            OPENSSL_RAW_DATA,
+            $iv->getCurrentIv()
+        );
+        $deciphered = new AesDecryptingStream(Psr7\stream_for($cipherText), $key, $iv);
+        $read = $deciphered->read(strlen($plainText) + AesDecryptingStream::BLOCK_SIZE);
+        $this->assertSame($plainText, $read);
+    }
+
+    /**
+     * @dataProvider cartesianJoinInputCipherMethodProvider
+     *
+     * @param StreamInterface $plainTextStream
+     * @param string $plainText
+     * @param CipherMethod $iv
+     */
     public function testSupportsRewinding(
         StreamInterface $plainTextStream,
         string $plainText,

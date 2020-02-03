@@ -50,6 +50,31 @@ class AesEncryptingStreamTest extends TestCase
      * @param string $plainText
      * @param CipherMethod $iv
      */
+    public function testSupportsReadingBeyondTheEndOfTheStream(
+        StreamInterface $plainTextStream,
+        string $plainText,
+        CipherMethod $iv
+    ) {
+        $key = 'foo';
+        $cipherText = openssl_encrypt(
+            $plainText,
+            $iv->getOpenSslName(),
+            $key,
+            OPENSSL_RAW_DATA,
+            $iv->getCurrentIv()
+        );
+        $cipherStream = new AesEncryptingStream($plainTextStream, $key, $iv);
+        $this->assertSame($cipherText, $cipherStream->read(strlen($plainText) + self::MB));
+        $this->assertSame('', $cipherStream->read(self::MB));
+    }
+
+    /**
+     * @dataProvider cartesianJoinInputCipherMethodProvider
+     *
+     * @param StreamInterface $plainTextStream
+     * @param string $plainText
+     * @param CipherMethod $iv
+     */
     public function testSupportsRewinding(
         StreamInterface $plainTextStream,
         string $plainText,
