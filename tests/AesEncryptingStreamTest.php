@@ -78,7 +78,7 @@ class AesEncryptingStreamTest extends TestCase
         CipherMethod $iv
     ) {
         if ($plainTextStream->getSize() === null) {
-            $this->markTestSkipped('Cannot read text of ciphertext stream when plaintext stream size is unknown');
+            $this->markTestSkipped('Cannot read size of ciphertext stream when plaintext stream size is unknown');
         } else {
             $cipherText = new AesEncryptingStream($plainTextStream, 'foo', $iv);
             $this->assertSame($cipherText->getSize(), strlen((string) $cipherText));
