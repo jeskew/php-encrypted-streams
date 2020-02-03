@@ -39,7 +39,7 @@ class AesEncryptingStreamTest extends TestCase
                 $plainTextStream,
                 $key,
                 $iv
-            ),
+            )
         );
     }
 
