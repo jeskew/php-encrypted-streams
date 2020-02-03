@@ -28,7 +28,7 @@ class RandomByteStream implements StreamInterface
         $this->stream = new PumpStream(function ($length) use (&$maxLength) {
             $length = min($length, $maxLength);
             $maxLength -= $length;
-            return openssl_random_pseudo_bytes($length);
+            return $length > 0 ? random_bytes($length) : false;
         });
     }
 

@@ -99,9 +99,7 @@ class AesDecryptingStream implements StreamInterface
         } while (strlen($cipherText) < $length && !$this->stream->eof());
 
         $options = OPENSSL_RAW_DATA;
-        if (!$this->stream->eof()
-            || $this->stream->getSize() !== $this->stream->tell()
-        ) {
+        if (!$this->stream->eof()) {
             $options |= OPENSSL_ZERO_PADDING;
         }
 

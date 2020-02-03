@@ -2,7 +2,6 @@
 namespace Jsq\EncryptionStreams;
 
 use GuzzleHttp\Psr7;
-use GuzzleHttp\Psr7\CachingStream;
 
 trait AesEncryptionStreamTestTrait
 {
@@ -10,11 +9,22 @@ trait AesEncryptionStreamTestTrait
     {
         $toReturn = [];
         $plainTexts = $this->unwrapProvider([$this, 'plainTextProvider']);
-        $ivs = $this->unwrapProvider([$this, 'cipherMethodProvider']);
 
         for ($i = 0; $i < count($plainTexts); $i++) {
-            for ($j = 0; $j < count($ivs); $j++) {
-                $toReturn []= [$plainTexts[$i], clone $ivs[$j]];
+            for ($j = 0; $j < count($this->cipherMethodProvider()); $j++) {
+                $toReturn []= [
+                    // Test each string with standard temp streams
+                    Psr7\stream_for($plainTexts[$i]),
+                    $plainTexts[$i],
+                    $this->cipherMethodProvider()[$j][0]
+                ];
+
+                $toReturn []= [
+                    // Test each string with a stream that does not know its own size
+                    Psr7\stream_for((function ($pt) { yield $pt; })($plainTexts[$i])),
+                    $plainTexts[$i],
+                    $this->cipherMethodProvider()[$j][0]
+                ];
             }
         }
 
@@ -30,6 +40,15 @@ trait AesEncryptionStreamTestTrait
         for ($i = 0; $i < count($plainTexts); $i++) {
             for ($j = 0; $j < count($keySizes); $j++) {
                 $toReturn []= [
+                    // Test each string with standard temp streams
+                    Psr7\stream_for($plainTexts[$i]),
+                    $plainTexts[$i],
+                    $keySizes[$j],
+                ];
+
+                $toReturn []= [
+                    // Test each string with a stream that does not know its own size
+                    Psr7\stream_for((function ($pt) { yield $pt; })($plainTexts[$i])),
                     $plainTexts[$i],
                     $keySizes[$j],
                 ];
@@ -42,16 +61,16 @@ trait AesEncryptionStreamTestTrait
     public function cipherMethodProvider()
     {
         $toReturn = [];
-        foreach ($this->unwrapProvider([$this, 'keySizeProvider']) as $keySize) {
+        foreach ($this->keySizeProvider() as $keySize) {
             $toReturn []= [new Cbc(
                 random_bytes(openssl_cipher_iv_length('aes-256-cbc')),
-                $keySize
+                $keySize[0]
             )];
             $toReturn []= [new Ctr(
                 random_bytes(openssl_cipher_iv_length('aes-256-ctr')),
-                $keySize
+                $keySize[0]
             )];
-            $toReturn []= [new Ecb($keySize)];
+            $toReturn []= [new Ecb($keySize[0])];
         }
 
         return $toReturn;
@@ -75,10 +94,12 @@ trait AesEncryptionStreamTestTrait
 
     public function plainTextProvider() {
         return [
-            [Psr7\stream_for('The rain in Spain falls mainly on the plain.')],
-            [Psr7\stream_for('دست‌نوشته‌ها نمی‌سوزند')],
-            [Psr7\stream_for('Рукописи не горят')],
-            [new CachingStream(new RandomByteStream(2 * 1024 * 1024 + 11))]
+            ['The rain in Spain falls mainly on the plain.'],
+            ['دست‌نوشته‌ها نمی‌سوزند'],
+            ['Рукописи не горят'],
+            [random_bytes(AesEncryptingStream::BLOCK_SIZE)],
+            [random_bytes(2 * 1024 * 1024)],
+            [random_bytes(2 * 1024 * 1024 + 11)],
         ];
     }
 
