@@ -61,16 +61,16 @@ trait AesEncryptionStreamTestTrait
     public function cipherMethodProvider()
     {
         $toReturn = [];
-        foreach ($this->keySizeProvider() as $keySize) {
+        foreach ($this->unwrapProvider([$this, 'keySizeProvider']) as $keySize) {
             $toReturn []= [new Cbc(
                 random_bytes(openssl_cipher_iv_length('aes-256-cbc')),
-                $keySize[0]
+                $keySize
             )];
             $toReturn []= [new Ctr(
                 random_bytes(openssl_cipher_iv_length('aes-256-ctr')),
-                $keySize[0]
+                $keySize
             )];
-            $toReturn []= [new Ecb($keySize[0])];
+            $toReturn []= [new Ecb($keySize)];
         }
 
         return $toReturn;
