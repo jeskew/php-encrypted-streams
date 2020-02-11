@@ -9,6 +9,8 @@ class AesGcmEncryptingStreamTest extends TestCase
 {
     use AesEncryptionStreamTestTrait;
 
+    const KEY = 'foo';
+
     /**
      * @dataProvider cartesianJoinInputKeySizeProvider
      *
@@ -17,13 +19,12 @@ class AesGcmEncryptingStreamTest extends TestCase
      * @param int $keySize
      */
     public function testStreamOutputSameAsOpenSSL(StreamInterface $plainTextStream, string $plainText, $keySize) {
-        $key = 'foo';
         $iv = random_bytes(openssl_cipher_iv_length('aes-256-gcm'));
         $additionalData = json_encode(['foo' => 'bar']);
         $tag = null;
         $encryptingStream = new AesGcmEncryptingStream(
             $plainTextStream,
-            $key,
+            self::KEY,
             $iv,
             $additionalData,
             16,
@@ -35,7 +36,7 @@ class AesGcmEncryptingStreamTest extends TestCase
             openssl_encrypt(
                 $plainText,
                 "aes-{$keySize}-gcm",
-                $key,
+                self::KEY,
                 OPENSSL_RAW_DATA,
                 $iv,
                 $tag,
@@ -51,10 +52,30 @@ class AesGcmEncryptingStreamTest extends TestCase
     {
         $decryptingStream = new AesGcmEncryptingStream(
             Psr7\stream_for(''),
-            'key',
+            self::KEY,
             random_bytes(openssl_cipher_iv_length('aes-256-gcm'))
         );
 
         $this->assertFalse($decryptingStream->isWritable());
+    }
+
+    public function testEmitsErrorWhenEncryptionFails()
+    {
+        // Capture the error in a custom handler to avoid PHPUnit's error trap
+        set_error_handler(function ($_, $message) use (&$error) {
+            $error = $message;
+        });
+
+        // Trigger a decryption failure by attempting to decrypt gibberish
+        $_ = (string) new AesGcmEncryptingStream(
+            new RandomByteStream(1024 * 1024),
+            self::KEY,
+            random_bytes(openssl_cipher_iv_length('aes-256-gcm')),
+            'tag',
+            16,
+            157
+        );
+
+        $this->assertRegExp("/EncryptionFailedException: Unable to encrypt/", $error);
     }
 }
