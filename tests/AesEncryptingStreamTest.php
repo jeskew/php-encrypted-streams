@@ -7,9 +7,9 @@ use Psr\Http\Message\StreamInterface;
 
 class AesEncryptingStreamTest extends TestCase
 {
-
     const KB = 1024;
     const MB = 1048576;
+    const KEY = 'foo';
 
     use AesEncryptionStreamTestTrait;
 
@@ -25,19 +25,17 @@ class AesEncryptingStreamTest extends TestCase
         string $plainText,
         CipherMethod $iv
     ) {
-        $key = 'foo';
-
         $this->assertSame(
             openssl_encrypt(
                 $plainText,
                 $iv->getOpenSslName(),
-                $key,
+                self::KEY,
                 OPENSSL_RAW_DATA,
                 $iv->getCurrentIv()
             ),
             (string) new AesEncryptingStream(
                 $plainTextStream,
-                $key,
+                self::KEY,
                 $iv
             )
         );
@@ -55,15 +53,14 @@ class AesEncryptingStreamTest extends TestCase
         string $plainText,
         CipherMethod $iv
     ) {
-        $key = 'foo';
         $cipherText = openssl_encrypt(
             $plainText,
             $iv->getOpenSslName(),
-            $key,
+            self::KEY,
             OPENSSL_RAW_DATA,
             $iv->getCurrentIv()
         );
-        $cipherStream = new AesEncryptingStream($plainTextStream, $key, $iv);
+        $cipherStream = new AesEncryptingStream($plainTextStream, self::KEY, $iv);
         $this->assertSame($cipherText, $cipherStream->read(strlen($plainText) + self::MB));
         $this->assertSame('', $cipherStream->read(self::MB));
     }
@@ -119,7 +116,7 @@ class AesEncryptingStreamTest extends TestCase
     {
         $memory = memory_get_usage();
 
-        $stream = new AesDecryptingStream(
+        $stream = new AesEncryptingStream(
             new RandomByteStream(124 * self::MB),
             'foo',
             $cipherMethod
@@ -195,5 +192,28 @@ class AesEncryptingStreamTest extends TestCase
         $lastFiveBytes = substr($stream->read(self::MB), self::MB - 5);
         $stream->seek(-5, SEEK_CUR);
         $this->assertSame($lastFiveBytes, $stream->read(5));
+    }
+    public function testEmitsErrorWhenEncryptionFails()
+    {
+        // Capture the error in a custom handler to avoid PHPUnit's error trap
+        set_error_handler(function ($_, $message) use (&$error) {
+            $error = $message;
+        });
+
+        // Trigger an openssl error by supplying an invalid key size
+        $_ = (string) new AesEncryptingStream(new RandomByteStream(self::MB), self::KEY,
+            new class implements CipherMethod {
+                public function getCurrentIv(): string { return 'iv'; }
+
+                public function getOpenSslName(): string { return 'aes-157-cbd'; }
+
+                public function requiresPadding(): bool { return false; }
+
+                public function update(string $cipherTextBlock): void {}
+
+                public function seek(int $offset, int $whence = SEEK_SET): void {}
+            });
+
+        $this->assertRegExp("/EncryptionFailedException: Unable to encrypt/", $error);
     }
 }

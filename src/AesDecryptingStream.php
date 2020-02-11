@@ -123,6 +123,12 @@ class AesDecryptingStream implements StreamInterface
             $this->cipherMethod->getCurrentIv()
         );
 
+        if ($plaintext === false) {
+            throw new DecryptionFailedException("Unable to decrypt $cipherText with an initialization vector"
+                . " of {$this->cipherMethod->getCurrentIv()} using the {$this->cipherMethod->getOpenSslName()}"
+                . " algorithm. Please ensure you have provided the correct algorithm, initialization vector, and key.");
+        }
+
         $this->cipherMethod->update($cipherText);
 
         return $plaintext;
