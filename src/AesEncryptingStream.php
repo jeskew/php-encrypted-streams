@@ -117,6 +117,12 @@ class AesEncryptingStream implements StreamInterface
             $this->cipherMethod->getCurrentIv()
         );
 
+        if ($cipherText === false) {
+            throw new EncryptionFailedException("Unable to encrypt data with an initialization vector"
+                . " of {$this->cipherMethod->getCurrentIv()} using the {$this->cipherMethod->getOpenSslName()}"
+                . " algorithm. Please ensure you have provided a valid algorithm and initialization vector.");
+        }
+
         $this->cipherMethod->update($cipherText);
 
         return $cipherText;

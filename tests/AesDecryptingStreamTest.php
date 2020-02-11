@@ -9,6 +9,7 @@ class AesDecryptingStreamTest extends TestCase
 {
     const KB = 1024;
     const MB = 1048576;
+    const KEY = 'foo';
 
     use AesEncryptionStreamTestTrait;
 
@@ -24,17 +25,16 @@ class AesDecryptingStreamTest extends TestCase
         string $plainText,
         CipherMethod $iv
     ) {
-        $key = 'foo';
         $cipherText = openssl_encrypt(
             $plainText,
             $iv->getOpenSslName(),
-            $key,
+            self::KEY,
             OPENSSL_RAW_DATA,
             $iv->getCurrentIv()
         );
 
         $this->assertSame(
-            (string) new AesDecryptingStream(Psr7\stream_for($cipherText), $key, $iv),
+            (string) new AesDecryptingStream(Psr7\stream_for($cipherText), self::KEY, $iv),
             $plainText
         );
     }
@@ -51,17 +51,16 @@ class AesDecryptingStreamTest extends TestCase
         string $plainText,
         CipherMethod $iv
     ) {
-        $key = 'foo';
         $cipherText = openssl_encrypt(
             $plainText,
             $iv->getOpenSslName(),
-            $key,
+            self::KEY,
             OPENSSL_RAW_DATA,
             $iv->getCurrentIv()
         );
         $deciphered = new AesDecryptingStream(
             Psr7\stream_for($cipherText),
-            $key,
+            self::KEY,
             $iv
         );
 
@@ -84,15 +83,14 @@ class AesDecryptingStreamTest extends TestCase
         string $plainText,
         CipherMethod $iv
     ) {
-        $key = 'foo';
         $cipherText = openssl_encrypt(
             $plainText,
             $iv->getOpenSslName(),
-            $key,
+            self::KEY,
             OPENSSL_RAW_DATA,
             $iv->getCurrentIv()
         );
-        $deciphered = new AesDecryptingStream(Psr7\stream_for($cipherText), $key, $iv);
+        $deciphered = new AesDecryptingStream(Psr7\stream_for($cipherText), self::KEY, $iv);
         $read = $deciphered->read(strlen($plainText) + AesDecryptingStream::BLOCK_SIZE);
         $this->assertSame($plainText, $read);
     }
@@ -109,15 +107,14 @@ class AesDecryptingStreamTest extends TestCase
         string $plainText,
         CipherMethod $iv
     ) {
-        $key = 'foo';
         $cipherText = openssl_encrypt(
             $plainText,
             $iv->getOpenSslName(),
-            $key,
+            self::KEY,
             OPENSSL_RAW_DATA,
             $iv->getCurrentIv()
         );
-        $deciphered = new AesDecryptingStream(Psr7\stream_for($cipherText), $key, $iv);
+        $deciphered = new AesDecryptingStream(Psr7\stream_for($cipherText), self::KEY, $iv);
         $firstBytes = $deciphered->read(256 * 2 + 3);
         $deciphered->rewind();
         $this->assertSame($firstBytes, $deciphered->read(256 * 2 + 3));
@@ -132,7 +129,8 @@ class AesDecryptingStreamTest extends TestCase
     {
         $memory = memory_get_usage();
 
-        $stream = new AesDecryptingStream(new RandomByteStream(124 * self::MB), 'foo', $iv);
+        $cipherStream = new AesEncryptingStream(new RandomByteStream(124 * self::MB), self::KEY, clone $iv);
+        $stream = new AesDecryptingStream($cipherStream, self::KEY, clone $iv);
 
         while (!$stream->eof()) {
             $stream->read(self::MB);
@@ -175,9 +173,29 @@ class AesDecryptingStreamTest extends TestCase
     public function testReturnsEmptyStringWhenSourceStreamEmpty(
         CipherMethod $cipherMethod
     ) {
-        $stream = new AesDecryptingStream(Psr7\stream_for(''), 'foo', $cipherMethod);
+        $stream = new AesDecryptingStream(
+            new AesEncryptingStream(Psr7\stream_for(''), self::KEY, clone $cipherMethod),
+            self::KEY,
+            $cipherMethod
+        );
 
         $this->assertEmpty($stream->read(self::MB));
         $this->assertSame($stream->read(self::MB), '');
+    }
+
+    public function testEmitsErrorWhenDecryptionFails()
+    {
+        // Capture the error in a custom handler to avoid PHPUnit's error trap
+        set_error_handler(function ($_, $message) use (&$error) {
+            $error = $message;
+        });
+
+        // Trigger a decryption failure by attempting to decrypt gibberish
+        // Not all cipher methods will balk (CTR, for example, will simply
+        // decrypt gibberish into gibberish), so CBC is used.
+        $_ = (string) new AesDecryptingStream(new RandomByteStream(self::MB), self::KEY,
+            new Cbc(random_bytes(openssl_cipher_iv_length('aes-256-cbc'))));
+
+        $this->assertRegExp("/DecryptionFailedException: Unable to decrypt/", $error);
     }
 }
