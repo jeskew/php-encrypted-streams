@@ -41,7 +41,7 @@ class AesGcmEncryptingStream implements StreamInterface
 
     public function createStream(): StreamInterface
     {
-        return Psr7\stream_for(openssl_encrypt(
+        $cipherText = openssl_encrypt(
             (string) $this->plaintext,
             "aes-{$this->keySize}-gcm",
             $this->key,
@@ -50,7 +50,15 @@ class AesGcmEncryptingStream implements StreamInterface
             $this->tag,
             $this->aad,
             $this->tagLength
-        ));
+        );
+
+        if ($cipherText === false) {
+            throw new EncryptionFailedException("Unable to encrypt data with an initialization vector"
+                . " of {$this->initializationVector} using the aes-{$this->keySize}-gcm algorithm. Please"
+                . " ensure you have provided a valid key size and initialization vector.");
+        }
+
+        return Psr7\stream_for($cipherText);
     }
 
     public function getTag(): string
