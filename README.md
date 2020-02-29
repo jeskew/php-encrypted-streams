@@ -21,24 +21,22 @@ for a discussion of the drawbacks of ECB.
 ## Usage
 
 Decorate an instance of `Psr\Http\Message\StreamInterface` with an encrypting
-decorator to incrementally encrypt the contents of the decorated stream as 
+decorator to incrementally encrypt the contents of the decorated stream as
 `read` is called on the decorating stream:
 
 ```php
-$cipherMethod = new Jsq\EncryptionStreams\Cbc(
-    random_bytes(openssl_cipher_iv_length('aes-256-cbc'))
-);
-$key = ... // a symmetric encryption key 
-// Create a PSR-7 stream for a very large file.
-$plaintext = new GuzzleHttp\Psr7\LazyOpenStream('/path/to/a/massive/file', 'r+);
-// Create an encrypting stream.
-$ciphertext = new Jsq\EncryptionStreams\AesEncryptingStream(
-    $plaintext,
-    $key,
-    $cipherMethod
-);
+$iv = random_bytes(openssl_cipher_iv_length('aes-256-cbc'));
+$cipherMethod = new Cbc($iv);
+$key = 'some-secret-password-here';
 
-$encryptedChunk = $ciphertext->read(1024 * 1024);
+$inStream = new Stream(fopen('some-input-file', 'r')); // Any PSR-7 stream will be fine here
+$cipherTextStream = new AesEncryptingStream($inStream, $key, $cipherMethod); // Wrap the stream in an EncryptingStream
+$cipherTextFile = Psr7\stream_for(fopen('encrypted.file', 'w'));
+Psr7\copy_to_stream($cipherTextStream, $cipherTextFile); // When you read from the encrypting stream, the data will be encrypted.
+
+// You'll also need to store the IV somewhere, because we'll need it later to decrypt the data.
+// In this case, I'll base64 encode it and stick it in a file (but we could put it anywhere where we can retrieve it later, like a database column)
+file_put_contents('encrypted.iv', base64_encode($iv));
 ```
 
 No encryption is performed until `read` is called on the encrypting stream.
