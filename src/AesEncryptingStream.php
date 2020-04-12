@@ -97,6 +97,11 @@ class AesEncryptingStream implements StreamInterface
         }
     }
 
+    public function eof(): bool
+    {
+        return $this->stream->eof() && $this->buffer === '';
+    }
+
     private function encryptBlock(int $length): string
     {
         if ($this->stream->eof()) {
