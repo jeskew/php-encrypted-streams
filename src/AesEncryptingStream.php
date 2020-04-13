@@ -69,7 +69,11 @@ class AesEncryptingStream implements StreamInterface
         }
 
         $data = substr($this->buffer, 0, $length);
-        $this->buffer = substr($this->buffer, $length);
+        if ($length < strlen($this->buffer)) {
+            $this->buffer = substr($this->buffer, $length);
+        } else {
+            $this->buffer = '';
+        }
 
         return $data ? $data : '';
     }
