@@ -216,4 +216,24 @@ class AesEncryptingStreamTest extends TestCase
 
         $this->assertRegExp("/EncryptionFailedException: Unable to encrypt/", $error);
     }
+
+    /**
+     * @dataProvider cipherMethodProvider
+     *
+     * @param CipherMethod $cipherMethod
+     */
+    public function testEofShouldConsiderPaddingWhenReadSizeIsLessThenBlockSize(CipherMethod $cipherMethod)
+    {
+        $stream = new AesEncryptingStream(
+            new RandomByteStream(100),
+            self::KEY,
+            $cipherMethod
+        );
+        $expectedSize = $stream->getSize();
+        $actualSize = 0;
+        while (!$stream->eof()) {
+            $actualSize += strlen($stream->read(15));
+        }
+        $this->assertSame($expectedSize, $actualSize);
+    }
 }
