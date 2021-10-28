@@ -216,4 +216,21 @@ class AesEncryptingStreamTest extends TestCase
 
         $this->assertRegExp("/EncryptionFailedException: Unable to encrypt/", $error);
     }
+
+    public function testSupportsReadLength1()
+    {
+        $key = "keyy";
+        $plain = str_repeat("a", 49);
+        $iv = hex2bin("5dfe91624ede1efc6bc1c90e1932c398");
+
+        $cipherMethod = new Cbc($iv, $keySize=128);
+        $e = new AesEncryptingStream(Psr7\stream_for($plain), $key, $cipherMethod);
+
+        $result = "";
+        for ($i = 0; $i < 100; $i++) {
+            $result .= $e->read(1);
+        }
+
+        $this->assertEquals(64, strlen($result));
+    }
 }
