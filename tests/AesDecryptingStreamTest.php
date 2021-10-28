@@ -198,4 +198,22 @@ class AesDecryptingStreamTest extends TestCase
 
         $this->assertRegExp("/DecryptionFailedException: Unable to decrypt/", $error);
     }
+
+    /**
+     * @dataProvider cipherMethodProvider
+     *
+     * @param CipherMethod $iv
+     */
+    public function testDataEndsWithEof(
+        CipherMethod $iv
+    ) {
+        $plain = str_repeat("0", 100);
+        $cipherStream = new AesEncryptingStream(Psr7\stream_for($plain), self::KEY, clone $iv);
+        $stream = new AesDecryptingStream($cipherStream, self::KEY, clone $iv);
+
+        while (!$stream->eof()) {
+            $stream->read(1);
+        }
+        $this->assertSame('', $stream->read(1));
+    }
 }

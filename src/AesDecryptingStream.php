@@ -46,9 +46,9 @@ class AesDecryptingStream implements StreamInterface
         $this->cipherMethod = clone $cipherMethod;
     }
 
-    public function eof()
+    public function eof(): bool
     {
-        return $this->cipherBuffer === '' && $this->stream->eof();
+        return $this->plainBuffer === '' && $this->cipherBuffer === '' && $this->stream->eof();
     }
 
     public function getSize(): ?int
