@@ -68,10 +68,9 @@ class AesEncryptingStream implements StreamInterface
             );
         }
 
-        $data = substr($this->buffer, 0, $length);
-        $this->buffer = substr($this->buffer, $length);
-
-        return $data ? $data : '';
+        $data = (string)substr($this->buffer, 0, $length);
+        $this->buffer = (string)substr($this->buffer, $length);
+        return $data;
     }
 
     public function seek($offset, $whence = SEEK_SET): void
