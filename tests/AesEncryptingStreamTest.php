@@ -1,30 +1,30 @@
 <?php
+
 namespace Jsq\EncryptionStreams;
 
-use GuzzleHttp\Psr7;
+use GuzzleHttp\Psr7\Utils;
+use LogicException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\StreamInterface;
 
 class AesEncryptingStreamTest extends TestCase
 {
-    const KB = 1024;
-    const MB = 1048576;
-    const KEY = 'foo';
+    public const KB = 1024;
+
+    public const MB = 1048576;
+
+    public const KEY = 'foo';
 
     use AesEncryptionStreamTestTrait;
+    use ExceptionAssertions;
 
-    /**
-     * @dataProvider cartesianJoinInputCipherMethodProvider
-     *
-     * @param StreamInterface $plainTextStream
-     * @param string $plainText
-     * @param CipherMethod $iv
-     */
+    #[DataProvider('cartesianJoinInputCipherMethodProvider')]
     public function testStreamOutputSameAsOpenSSL(
         StreamInterface $plainTextStream,
         string $plainText,
         CipherMethod $iv
-    ) {
+    ): void {
         $this->assertSame(
             openssl_encrypt(
                 $plainText,
@@ -33,7 +33,7 @@ class AesEncryptingStreamTest extends TestCase
                 OPENSSL_RAW_DATA,
                 $iv->getCurrentIv()
             ),
-            (string) new AesEncryptingStream(
+            (string)new AesEncryptingStream(
                 $plainTextStream,
                 self::KEY,
                 $iv
@@ -41,18 +41,12 @@ class AesEncryptingStreamTest extends TestCase
         );
     }
 
-    /**
-     * @dataProvider cartesianJoinInputCipherMethodProvider
-     *
-     * @param StreamInterface $plainTextStream
-     * @param string $plainText
-     * @param CipherMethod $iv
-     */
+    #[DataProvider('cartesianJoinInputCipherMethodProvider')]
     public function testSupportsReadingBeyondTheEndOfTheStream(
         StreamInterface $plainTextStream,
         string $plainText,
         CipherMethod $iv
-    ) {
+    ): void {
         $cipherText = openssl_encrypt(
             $plainText,
             $iv->getOpenSslName(),
@@ -65,18 +59,12 @@ class AesEncryptingStreamTest extends TestCase
         $this->assertSame('', $cipherStream->read(self::MB));
     }
 
-    /**
-     * @dataProvider cartesianJoinInputCipherMethodProvider
-     *
-     * @param StreamInterface $plainTextStream
-     * @param string $plainText
-     * @param CipherMethod $iv
-     */
+    #[DataProvider('cartesianJoinInputCipherMethodProvider')]
     public function testSupportsRewinding(
         StreamInterface $plainTextStream,
         string $plainText,
         CipherMethod $iv
-    ) {
+    ): void {
         if (!$plainTextStream->isSeekable()) {
             $this->markTestSkipped('Cannot rewind encryption streams whose plaintext is not seekable');
         } else {
@@ -87,32 +75,22 @@ class AesEncryptingStreamTest extends TestCase
         }
     }
 
-    /**
-     * @dataProvider cartesianJoinInputCipherMethodProvider
-     *
-     * @param StreamInterface $plainTextStream
-     * @param string $plainText
-     * @param CipherMethod $iv
-     */
+    #[DataProvider('cartesianJoinInputCipherMethodProvider')]
     public function testAccuratelyReportsSizeOfCipherText(
         StreamInterface $plainTextStream,
         string $plainText,
         CipherMethod $iv
-    ) {
+    ): void {
         if ($plainTextStream->getSize() === null) {
             $this->markTestSkipped('Cannot read size of ciphertext stream when plaintext stream size is unknown');
         } else {
             $cipherText = new AesEncryptingStream($plainTextStream, 'foo', $iv);
-            $this->assertSame($cipherText->getSize(), strlen((string) $cipherText));
+            $this->assertSame($cipherText->getSize(), strlen((string)$cipherText));
         }
     }
 
-    /**
-     * @dataProvider cipherMethodProvider
-     *
-     * @param CipherMethod $cipherMethod
-     */
-    public function testMemoryUsageRemainsConstant(CipherMethod $cipherMethod)
+    #[DataProvider('cipherMethodProvider')]
+    public function testMemoryUsageRemainsConstant(CipherMethod $cipherMethod): void
     {
         $memory = memory_get_usage();
 
@@ -130,7 +108,7 @@ class AesEncryptingStreamTest extends TestCase
         $this->assertLessThanOrEqual($memory + 2 * self::MB, memory_get_usage());
     }
 
-    public function testIsNotWritable()
+    public function testIsNotWritable(): void
     {
         $stream = new AesEncryptingStream(
             new RandomByteStream(124 * self::MB),
@@ -141,16 +119,12 @@ class AesEncryptingStreamTest extends TestCase
         $this->assertFalse($stream->isWritable());
     }
 
-    /**
-     * @dataProvider cipherMethodProvider
-     *
-     * @param CipherMethod $cipherMethod
-     */
+    #[DataProvider('cipherMethodProvider')]
     public function testReturnsPaddedOrEmptyStringWhenSourceStreamEmpty(
         CipherMethod $cipherMethod
-    ){
+    ): void {
         $stream = new AesEncryptingStream(
-            Psr7\stream_for(''),
+            Utils::streamFor(''),
             'foo',
             $cipherMethod
         );
@@ -161,30 +135,21 @@ class AesEncryptingStreamTest extends TestCase
         $this->assertSame($stream->read(self::MB), '');
     }
 
-    /**
-     * @dataProvider cipherMethodProvider
-     *
-     * @param CipherMethod $cipherMethod
-     *
-     * @expectedException \LogicException
-     */
-    public function testDoesNotSupportSeekingFromEnd(CipherMethod $cipherMethod)
+    #[DataProvider('cipherMethodProvider')]
+    public function testDoesNotSupportSeekingFromEnd(CipherMethod $cipherMethod): void
     {
-        $stream = new AesEncryptingStream(Psr7\stream_for('foo'), 'foo', $cipherMethod);
+        $this->expectException(LogicException::class);
+        $stream = new AesEncryptingStream(Utils::streamFor('foo'), 'foo', $cipherMethod);
 
         $stream->seek(1, SEEK_END);
     }
 
-    /**
-     * @dataProvider seekableCipherMethodProvider
-     *
-     * @param CipherMethod $cipherMethod
-     */
+    #[DataProvider('seekableCipherMethodProvider')]
     public function testSupportsSeekingFromCurrentPosition(
         CipherMethod $cipherMethod
-    ){
+    ): void {
         $stream = new AesEncryptingStream(
-            Psr7\stream_for(random_bytes(2 * self::MB)),
+            Utils::streamFor(random_bytes(2 * self::MB)),
             'foo',
             $cipherMethod
         );
@@ -193,27 +158,45 @@ class AesEncryptingStreamTest extends TestCase
         $stream->seek(-5, SEEK_CUR);
         $this->assertSame($lastFiveBytes, $stream->read(5));
     }
-    public function testEmitsErrorWhenEncryptionFails()
+
+    public function testEmitsErrorWhenEncryptionFails(): void
     {
-        // Capture the error in a custom handler to avoid PHPUnit's error trap
-        set_error_handler(function ($_, $message) use (&$error) {
-            $error = $message;
-        });
+        $cipherMethod = new class implements CipherMethod {
+            public function getCurrentIv(): string
+            {
+                return 'iv';
+            }
+
+            public function getOpenSslName(): string
+            {
+                return 'aes-157-cbd';
+            }
+
+            public function requiresPadding(): bool
+            {
+                return false;
+            }
+
+            public function update(string $cipherTextBlock): void
+            {
+            }
+
+            public function seek(int $offset, int $whence = SEEK_SET): void
+            {
+            }
+        };
+        $expectedException = new EncryptionFailedException(
+            "Unable to encrypt data with an initialization vector"
+            . sprintf(' of %s using the %s', $cipherMethod->getCurrentIv(), $cipherMethod->getOpenSslName())
+            . " algorithm. Please ensure you have provided a valid algorithm and initialization vector."
+        );
 
         // Trigger an openssl error by supplying an invalid key size
-        $_ = (string) new AesEncryptingStream(new RandomByteStream(self::MB), self::KEY,
-            new class implements CipherMethod {
-                public function getCurrentIv(): string { return 'iv'; }
+        $act = fn(): string => @(string)new AesEncryptingStream(
+            new RandomByteStream(self::MB), self::KEY,
+            $cipherMethod
+        );
 
-                public function getOpenSslName(): string { return 'aes-157-cbd'; }
-
-                public function requiresPadding(): bool { return false; }
-
-                public function update(string $cipherTextBlock): void {}
-
-                public function seek(int $offset, int $whence = SEEK_SET): void {}
-            });
-
-        $this->assertRegExp("/EncryptionFailedException: Unable to encrypt/", $error);
+        $this->assertException($act, $expectedException);
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 namespace Jsq\EncryptionStreams;
 
 use GuzzleHttp\Psr7\PumpStream;
@@ -10,11 +11,6 @@ class RandomByteStream implements StreamInterface
     use StreamDecoratorTrait;
 
     /**
-     * @var int
-     */
-    private $maxLength;
-
-    /**
      * @var PumpStream
      */
     private $stream;
@@ -22,17 +18,16 @@ class RandomByteStream implements StreamInterface
     /**
      * @param int $maxLength
      */
-    public function __construct($maxLength)
+    public function __construct(private $maxLength)
     {
-        $this->maxLength = $maxLength;
-        $this->stream = new PumpStream(function ($length) use (&$maxLength) {
-            $length = min($length, $maxLength);
-            $maxLength -= $length;
+        $this->stream = new PumpStream(function ($length) {
+            $length = min($length, $this->maxLength);
+            $this->maxLength -= $length;
             return $length > 0 ? random_bytes($length) : false;
         });
     }
 
-    public function getSize()
+    public function getSize(): ?int
     {
         return $this->maxLength;
     }

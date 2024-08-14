@@ -1,24 +1,21 @@
 <?php
+
 namespace Jsq\EncryptionStreams;
 
-use GuzzleHttp\Psr7;
+use PHPUnit\Framework\Attributes\DataProvider;
+use GuzzleHttp\Psr7\Utils;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\StreamInterface;
 
 class AesGcmEncryptingStreamTest extends TestCase
 {
     use AesEncryptionStreamTestTrait;
+    use ExceptionAssertions;
+    public const KEY = 'foo';
 
-    const KEY = 'foo';
-
-    /**
-     * @dataProvider cartesianJoinInputKeySizeProvider
-     *
-     * @param StreamInterface $plainTextStream
-     * @param string $plainText
-     * @param int $keySize
-     */
-    public function testStreamOutputSameAsOpenSSL(StreamInterface $plainTextStream, string $plainText, $keySize) {
+    #[DataProvider('cartesianJoinInputKeySizeProvider')]
+    public function testStreamOutputSameAsOpenSSL(StreamInterface $plainTextStream, string $plainText, int $keySize): void
+    {
         $iv = random_bytes(openssl_cipher_iv_length('aes-256-gcm'));
         $additionalData = json_encode(['foo' => 'bar']);
         $tag = null;
@@ -32,10 +29,10 @@ class AesGcmEncryptingStreamTest extends TestCase
         );
 
         $this->assertSame(
-            (string) $encryptingStream,
+            (string)$encryptingStream,
             openssl_encrypt(
                 $plainText,
-                "aes-{$keySize}-gcm",
+                sprintf('aes-%d-gcm', $keySize),
                 self::KEY,
                 OPENSSL_RAW_DATA,
                 $iv,
@@ -48,10 +45,10 @@ class AesGcmEncryptingStreamTest extends TestCase
         $this->assertSame($tag, $encryptingStream->getTag());
     }
 
-    public function testIsNotWritable()
+    public function testIsNotWritable(): void
     {
         $decryptingStream = new AesGcmEncryptingStream(
-            Psr7\stream_for(''),
+            Utils::streamFor(''),
             self::KEY,
             random_bytes(openssl_cipher_iv_length('aes-256-gcm'))
         );
@@ -59,23 +56,26 @@ class AesGcmEncryptingStreamTest extends TestCase
         $this->assertFalse($decryptingStream->isWritable());
     }
 
-    public function testEmitsErrorWhenEncryptionFails()
+    public function testEmitsErrorWhenEncryptionFails(): void
     {
-        // Capture the error in a custom handler to avoid PHPUnit's error trap
-        set_error_handler(function ($_, $message) use (&$error) {
-            $error = $message;
-        });
-
-        // Trigger a decryption failure by attempting to decrypt gibberish
-        $_ = (string) new AesGcmEncryptingStream(
-            new RandomByteStream(1024 * 1024),
-            self::KEY,
-            random_bytes(openssl_cipher_iv_length('aes-256-gcm')),
-            'tag',
-            16,
-            157
+        $initializationVector = random_bytes(openssl_cipher_iv_length('aes-256-gcm'));
+        $keySize = 157;
+        $expectedException = new EncryptionFailedException(
+            "Unable to encrypt data with an initialization vector"
+            . sprintf(' of %s using the aes-%d-gcm algorithm. Please', $initializationVector, $keySize)
+            . " ensure you have provided a valid key size and initialization vector."
         );
 
-        $this->assertRegExp("/EncryptionFailedException: Unable to encrypt/", $error);
+        // Trigger a decryption failure by attempting to decrypt gibberish
+        $act = fn(): string => @(string)new AesGcmEncryptingStream(
+            new RandomByteStream(1024 * 1024),
+            self::KEY,
+            $initializationVector,
+            'tag',
+            16,
+            $keySize
+        );
+
+        $this->assertException($act, $expectedException);
     }
 }

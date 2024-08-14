@@ -5,12 +5,12 @@ use PHPUnit\Framework\TestCase;
 
 class EcbTest extends TestCase
 {
-    public function testShouldReportCipherMethodOfECB()
+    public function testShouldReportCipherMethodOfECB(): void
     {
         $this->assertSame('aes-256-ecb', (new Ecb)->getOpenSslName());
     }
 
-    public function testShouldReturnEmptyStringForCurrentIv()
+    public function testShouldReturnEmptyStringForCurrentIv(): void
     {
         $iv = new Ecb();
         $this->assertEmpty($iv->getCurrentIv());
@@ -18,7 +18,7 @@ class EcbTest extends TestCase
         $this->assertEmpty($iv->getCurrentIv());
     }
 
-    public function testSeekShouldBeNoOp()
+    public function testSeekShouldBeNoOp(): void
     {
         $iv = new Ecb();
         $baseIv = $iv->getCurrentIv();
@@ -26,7 +26,7 @@ class EcbTest extends TestCase
         $this->assertSame($baseIv, $iv->getCurrentIv());
     }
 
-    public function testShouldReportThatPaddingIsRequired()
+    public function testShouldReportThatPaddingIsRequired(): void
     {
         $this->assertTrue((new Ecb)->requiresPadding());
     }

@@ -1,31 +1,31 @@
 <?php
 namespace Jsq\EncryptionStreams;
 
-use GuzzleHttp\Psr7;
+use GuzzleHttp\Psr7\Utils;
 use PHPUnit\Framework\TestCase;
 
 class Base64DecodingStreamTest extends TestCase
 {
-    const MB = 1048576;
+    public const MB = 1048576;
 
-    public function testEncodingShouldMatchBase64_DecodeOutput()
+    public function testEncodingShouldMatchBase64_DecodeOutput(): void
     {
-        $stream = Psr7\stream_for(base64_encode(random_bytes(1027)));
+        $stream = Utils::streamFor(base64_encode(random_bytes(1027)));
         $encodingStream = new Base64DecodingStream($stream);
 
         $this->assertSame(base64_decode($stream), (string) $encodingStream);
     }
 
-    public function testShouldReportNullAsSize()
+    public function testShouldReportNullAsSize(): void
     {
         $encodingStream = new Base64DecodingStream(
-            Psr7\stream_for(base64_encode(random_bytes(1027)))
+            Utils::streamFor(base64_encode(random_bytes(1027)))
         );
 
         $this->assertNull($encodingStream->getSize());
     }
 
-    public function testMemoryUsageRemainsConstant()
+    public function testMemoryUsageRemainsConstant(): void
     {
         $memory = memory_get_usage();
 

@@ -1,4 +1,6 @@
 <?php
 namespace Jsq\EncryptionStreams;
 
-class DecryptionFailedException extends \RuntimeException {}
+use RuntimeException;
+
+class DecryptionFailedException extends RuntimeException {}

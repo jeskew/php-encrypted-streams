@@ -1,41 +1,39 @@
 <?php
 namespace Jsq\EncryptionStreams;
 
-use GuzzleHttp\Psr7;
+use GuzzleHttp\Psr7\Utils;
 use GuzzleHttp\Psr7\PumpStream;
 use PHPUnit\Framework\TestCase;
 
 class Base64EncodingStreamTest extends TestCase
 {
-    const MB = 1048576;
+    public const MB = 1048576;
 
-    public function testEncodingShouldMatchBase64_EncodeOutput()
+    public function testEncodingShouldMatchBase64_EncodeOutput(): void
     {
         $bytes = random_bytes(self::MB + 3);
-        $encodingStream = new Base64EncodingStream(Psr7\stream_for($bytes));
+        $encodingStream = new Base64EncodingStream(Utils::streamFor($bytes));
 
         $this->assertSame(base64_encode($bytes), (string) $encodingStream);
     }
 
-    public function testShouldReportSizeOfEncodedStream()
+    public function testShouldReportSizeOfEncodedStream(): void
     {
         $bytes = random_bytes(self::MB + 3);
-        $encodingStream = new Base64EncodingStream(Psr7\stream_for($bytes));
+        $encodingStream = new Base64EncodingStream(Utils::streamFor($bytes));
 
         $this->assertSame(strlen(base64_encode($bytes)), $encodingStream->getSize());
     }
 
-    public function testShouldReportNullIfSizeOfSourceStreamUnknown()
+    public function testShouldReportNullIfSizeOfSourceStreamUnknown(): void
     {
-        $stream = new PumpStream(function ($length) {
-            return random_bytes($length);
-        });
+        $stream = new PumpStream(fn($length): string => random_bytes($length));
         $encodingStream = new Base64EncodingStream($stream);
 
         $this->assertNull($encodingStream->getSize());
     }
 
-    public function testMemoryUsageRemainsConstant()
+    public function testMemoryUsageRemainsConstant(): void
     {
         $memory = memory_get_usage();
 

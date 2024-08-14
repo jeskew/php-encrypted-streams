@@ -3,22 +3,13 @@ namespace Jsq\EncryptionStreams;
 
 class Ecb implements CipherMethod
 {
-    /**
-     * @var int
-     */
-    private $keySize;
-
-    /**
-     * @param int $keySize
-     */
-    public function __construct(int $keySize = 256)
+    public function __construct(private readonly int $keySize = 256)
     {
-        $this->keySize = $keySize;
     }
 
     public function getOpenSslName(): string
     {
-        return "aes-{$this->keySize}-ecb";
+        return sprintf('aes-%d-ecb', $this->keySize);
     }
 
     public function getCurrentIv(): string

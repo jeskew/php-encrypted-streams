@@ -1,4 +1,5 @@
 <?php
+
 namespace Jsq\EncryptionStreams;
 
 use InvalidArgumentException as Iae;
@@ -6,36 +7,21 @@ use LogicException;
 
 class Cbc implements CipherMethod
 {
-    const BLOCK_SIZE = 16;
+    public const BLOCK_SIZE = 16;
 
-    /**
-     * @var string
-     */
-    private $baseIv;
+    private ?string $iv;
 
-    /**
-     * @var string
-     */
-    private $iv;
-
-    /**
-     * @var int
-     */
-    private $keySize;
-
-    public function __construct(string $iv, int $keySize = 256)
+    public function __construct(private readonly string $baseIv, private readonly int $keySize = 256)
     {
-        $this->baseIv = $this->iv = $iv;
-        $this->keySize = $keySize;
-
-        if (strlen($iv) !== openssl_cipher_iv_length($this->getOpenSslName())) {
+        $this->iv = $this->baseIv;
+        if (strlen($this->baseIv) !== openssl_cipher_iv_length($this->getOpenSslName())) {
             throw new Iae('Invalid initialization vector');
         }
     }
 
     public function getOpenSslName(): string
     {
-        return "aes-{$this->keySize}-cbc";
+        return sprintf('aes-%d-cbc', $this->keySize);
     }
 
     public function getCurrentIv(): string
@@ -53,8 +39,7 @@ class Cbc implements CipherMethod
         if ($offset === 0 && $whence === SEEK_SET) {
             $this->iv = $this->baseIv;
         } else {
-            throw new LogicException('CBC initialization only support being'
-                . ' rewound, not arbitrary seeking.');
+            throw new LogicException('CBC initialization only support being rewound, not arbitrary seeking.');
         }
     }
 

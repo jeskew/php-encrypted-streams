@@ -1,30 +1,32 @@
 <?php
+
 namespace Jsq\EncryptionStreams;
 
-use GuzzleHttp\Psr7;
+use GuzzleHttp\Psr7\Utils;
+use LogicException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\StreamInterface;
 
 class AesDecryptingStreamTest extends TestCase
 {
-    const KB = 1024;
-    const MB = 1048576;
-    const KEY = 'foo';
+    use ExceptionAssertions;
+
+    public const KB = 1024;
+
+    public const MB = 1048576;
+
+    public const KEY = 'foo';
 
     use AesEncryptionStreamTestTrait;
 
-    /**
-     * @dataProvider cartesianJoinInputCipherMethodProvider
-     *
-     * @param StreamInterface $plainTextStream
-     * @param string $plainText
-     * @param CipherMethod $iv
-     */
+
+    #[DataProvider('cartesianJoinInputCipherMethodProvider')]
     public function testStreamOutputSameAsOpenSSL(
         StreamInterface $plainTextStream,
         string $plainText,
         CipherMethod $iv
-    ) {
+    ): void {
         $cipherText = openssl_encrypt(
             $plainText,
             $iv->getOpenSslName(),
@@ -34,23 +36,18 @@ class AesDecryptingStreamTest extends TestCase
         );
 
         $this->assertSame(
-            (string) new AesDecryptingStream(Psr7\stream_for($cipherText), self::KEY, $iv),
+            (string)new AesDecryptingStream(Utils::streamFor($cipherText), self::KEY, $iv),
             $plainText
         );
     }
 
-    /**
-     * @dataProvider cartesianJoinInputCipherMethodProvider
-     *
-     * @param StreamInterface $plainTextStream
-     * @param string $plainText
-     * @param CipherMethod $iv
-     */
+
+    #[DataProvider('cartesianJoinInputCipherMethodProvider')]
     public function testReportsSizeOfPlaintextWherePossible(
         StreamInterface $plainTextStream,
         string $plainText,
         CipherMethod $iv
-    ) {
+    ): void {
         $cipherText = openssl_encrypt(
             $plainText,
             $iv->getOpenSslName(),
@@ -59,7 +56,7 @@ class AesDecryptingStreamTest extends TestCase
             $iv->getCurrentIv()
         );
         $deciphered = new AesDecryptingStream(
-            Psr7\stream_for($cipherText),
+            Utils::streamFor($cipherText),
             self::KEY,
             $iv
         );
@@ -71,18 +68,13 @@ class AesDecryptingStreamTest extends TestCase
         }
     }
 
-    /**
-     * @dataProvider cartesianJoinInputCipherMethodProvider
-     *
-     * @param StreamInterface $plainTextStream
-     * @param string $plainText
-     * @param CipherMethod $iv
-     */
+
+    #[DataProvider('cartesianJoinInputCipherMethodProvider')]
     public function testSupportsReadingBeyondTheEndOfTheStream(
         StreamInterface $plainTextStream,
         string $plainText,
         CipherMethod $iv
-    ) {
+    ): void {
         $cipherText = openssl_encrypt(
             $plainText,
             $iv->getOpenSslName(),
@@ -90,23 +82,18 @@ class AesDecryptingStreamTest extends TestCase
             OPENSSL_RAW_DATA,
             $iv->getCurrentIv()
         );
-        $deciphered = new AesDecryptingStream(Psr7\stream_for($cipherText), self::KEY, $iv);
+        $deciphered = new AesDecryptingStream(Utils::streamFor($cipherText), self::KEY, $iv);
         $read = $deciphered->read(strlen($plainText) + AesDecryptingStream::BLOCK_SIZE);
         $this->assertSame($plainText, $read);
     }
 
-    /**
-     * @dataProvider cartesianJoinInputCipherMethodProvider
-     *
-     * @param StreamInterface $plainTextStream
-     * @param string $plainText
-     * @param CipherMethod $iv
-     */
+
+    #[DataProvider('cartesianJoinInputCipherMethodProvider')]
     public function testSupportsRewinding(
         StreamInterface $plainTextStream,
         string $plainText,
         CipherMethod $iv
-    ) {
+    ): void {
         $cipherText = openssl_encrypt(
             $plainText,
             $iv->getOpenSslName(),
@@ -114,18 +101,14 @@ class AesDecryptingStreamTest extends TestCase
             OPENSSL_RAW_DATA,
             $iv->getCurrentIv()
         );
-        $deciphered = new AesDecryptingStream(Psr7\stream_for($cipherText), self::KEY, $iv);
+        $deciphered = new AesDecryptingStream(Utils::streamFor($cipherText), self::KEY, $iv);
         $firstBytes = $deciphered->read(256 * 2 + 3);
         $deciphered->rewind();
         $this->assertSame($firstBytes, $deciphered->read(256 * 2 + 3));
     }
 
-    /**
-     * @dataProvider cipherMethodProvider
-     *
-     * @param CipherMethod $iv
-     */
-    public function testMemoryUsageRemainsConstant(CipherMethod $iv)
+    #[DataProvider('cipherMethodProvider')]
+    public function testMemoryUsageRemainsConstant(CipherMethod $iv): void
     {
         $memory = memory_get_usage();
 
@@ -140,7 +123,7 @@ class AesDecryptingStreamTest extends TestCase
         $this->assertLessThanOrEqual($memory + 2 * self::MB, memory_get_usage());
     }
 
-    public function testIsNotWritable()
+    public function testIsNotWritable(): void
     {
         $stream = new AesDecryptingStream(
             new RandomByteStream(124 * self::MB),
@@ -151,11 +134,9 @@ class AesDecryptingStreamTest extends TestCase
         $this->assertFalse($stream->isWritable());
     }
 
-    /**
-     * @expectedException \LogicException
-     */
-    public function testDoesNotSupportArbitrarySeeking()
+    public function testDoesNotSupportArbitrarySeeking(): void
     {
+        $this->expectException(LogicException::class);
         $stream = new AesDecryptingStream(
             new RandomByteStream(124 * self::MB),
             'foo',
@@ -165,16 +146,12 @@ class AesDecryptingStreamTest extends TestCase
         $stream->seek(1);
     }
 
-    /**
-     * @dataProvider cipherMethodProvider
-     *
-     * @param CipherMethod $cipherMethod
-     */
+    #[DataProvider('cipherMethodProvider')]
     public function testReturnsEmptyStringWhenSourceStreamEmpty(
         CipherMethod $cipherMethod
-    ) {
+    ): void {
         $stream = new AesDecryptingStream(
-            new AesEncryptingStream(Psr7\stream_for(''), self::KEY, clone $cipherMethod),
+            new AesEncryptingStream(Utils::streamFor(''), self::KEY, clone $cipherMethod),
             self::KEY,
             $cipherMethod
         );
@@ -183,19 +160,22 @@ class AesDecryptingStreamTest extends TestCase
         $this->assertSame($stream->read(self::MB), '');
     }
 
-    public function testEmitsErrorWhenDecryptionFails()
+    public function testEmitsErrorWhenDecryptionFails(): void
     {
         // Capture the error in a custom handler to avoid PHPUnit's error trap
-        set_error_handler(function ($_, $message) use (&$error) {
-            $error = $message;
-        });
+        $cipherText = Utils::streamFor(random_bytes(self::MB)); // not big fan of random in test but ok...
+        $cipherMethod = new Cbc(random_bytes(openssl_cipher_iv_length('aes-256-cbc')));
+        $expectedException = new DecryptionFailedException(
+            sprintf('Unable to decrypt %s with an initialization vector', $cipherText)
+            . sprintf(' of %s using the %s', $cipherMethod->getCurrentIv(), $cipherMethod->getOpenSslName())
+            . " algorithm. Please ensure you have provided the correct algorithm, initialization vector, and key."
+        );
 
         // Trigger a decryption failure by attempting to decrypt gibberish
         // Not all cipher methods will balk (CTR, for example, will simply
         // decrypt gibberish into gibberish), so CBC is used.
-        $_ = (string) new AesDecryptingStream(new RandomByteStream(self::MB), self::KEY,
-            new Cbc(random_bytes(openssl_cipher_iv_length('aes-256-cbc'))));
+        $act = fn(): string => (string)new AesDecryptingStream($cipherText, self::KEY, $cipherMethod);
 
-        $this->assertRegExp("/DecryptionFailedException: Unable to decrypt/", $error);
+        $this->assertException($act, $expectedException);
     }
 }

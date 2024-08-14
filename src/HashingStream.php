@@ -1,8 +1,9 @@
 <?php
+
 namespace Jsq\EncryptionStreams;
 
-use BadMethodCallException;
 use GuzzleHttp\Psr7\StreamDecoratorTrait;
+use HashContext;
 use LogicException;
 use Psr\Http\Message\StreamInterface;
 
@@ -10,41 +11,25 @@ class HashingStream implements StreamInterface
 {
     use StreamDecoratorTrait;
 
-    /**
-     * @var StreamInterface
-     */
-    private $stream;
-
-    /**
-     * @var string
-     */
-    private $hash;
+    private ?string $hash = null;
 
     /**
      * @var resource
      */
-    private $hashResource;
+    private HashContext $hashResource;
 
     /**
      * @var callable
      */
     private $onComplete;
 
-    private $key;
-
-    private $algorithm;
-
     public function __construct(
-        StreamInterface $stream,
-        ?string $key = null,
+        private readonly StreamInterface $stream,
+        private readonly ?string $key = null,
         ?callable $onComplete = null,
-        string $algorithm = 'sha256'
-    ){
-        $this->stream = $stream;
-        $this->key = $key;
+        private readonly string $algorithm = 'sha256'
+    ) {
         $this->onComplete = $onComplete;
-        $this->algorithm = $algorithm;
-
         $this->initializeHash();
     }
 
@@ -60,9 +45,10 @@ class HashingStream implements StreamInterface
     public function read($length): string
     {
         $read = $this->stream->read($length);
-        if (strlen($read) > 0) {
+        if ($read !== '') {
             hash_update($this->hashResource, $read);
         }
+
         if ($this->stream->eof()) {
             $this->hash = hash_final($this->hashResource, true);
             if ($this->onComplete) {
@@ -79,8 +65,7 @@ class HashingStream implements StreamInterface
             $this->stream->seek($offset, $whence);
             $this->initializeHash();
         } else {
-            throw new LogicException('AES encryption streams only support being'
-                . ' rewound, not arbitrary seeking.');
+            throw new LogicException('AES encryption streams only support being rewound, not arbitrary seeking.');
         }
     }
 
@@ -90,7 +75,7 @@ class HashingStream implements StreamInterface
         $this->hashResource = hash_init(
             $this->algorithm,
             $this->key !== null ? HASH_HMAC : 0,
-            $this->key
+            $this->key ?? ''
         );
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 namespace Jsq\EncryptionStreams;
 
 use GuzzleHttp\Psr7\StreamDecoratorTrait;
@@ -7,46 +8,28 @@ use Psr\Http\Message\StreamInterface;
 
 class AesDecryptingStream implements StreamInterface
 {
-    const BLOCK_SIZE = 16; // 128 bits
+    public const BLOCK_SIZE = 16; // 128 bits
 
     use StreamDecoratorTrait;
 
-    /**
-     * @var string
-     */
-    private $plainBuffer = '';
+    private string $plainBuffer = '';
 
-    /**
-     * @var string
-     */
-    private $cipherBuffer = '';
+    private string $cipherBuffer = '';
 
-    /**
-     * @var CipherMethod
-     */
-    private $cipherMethod;
+    private CipherMethod $cipherMethod;
 
-    /**
-     * @var string
-     */
-    private $key;
-
-    /**
-     * @var StreamInterface
-     */
-    private $stream;
+    private StreamInterface $stream;
 
     public function __construct(
         StreamInterface $cipherText,
-        string $key,
+        private readonly string $key,
         CipherMethod $cipherMethod
     ) {
         $this->stream = $cipherText;
-        $this->key = $key;
         $this->cipherMethod = clone $cipherMethod;
     }
 
-    public function eof()
+    public function eof(): bool
     {
         return $this->cipherBuffer === '' && $this->stream->eof();
     }
@@ -75,14 +58,14 @@ class AesDecryptingStream implements StreamInterface
     {
         if ($length > strlen($this->plainBuffer)) {
             $this->plainBuffer .= $this->decryptBlock(
-                self::BLOCK_SIZE * ceil(($length - strlen($this->plainBuffer)) / self::BLOCK_SIZE)
+                self::BLOCK_SIZE * (int) ceil(($length - strlen($this->plainBuffer)) / self::BLOCK_SIZE)
             );
         }
 
         $data = substr($this->plainBuffer, 0, $length);
         $this->plainBuffer = substr($this->plainBuffer, $length);
 
-        return $data ? $data : '';
+        return $data ?: '';
     }
 
     public function seek($offset, $whence = SEEK_SET): void
@@ -93,8 +76,7 @@ class AesDecryptingStream implements StreamInterface
             $this->cipherMethod->seek(0, SEEK_SET);
             $this->stream->seek(0, SEEK_SET);
         } else {
-            throw new LogicException('AES encryption streams only support being'
-                . ' rewound, not arbitrary seeking.');
+            throw new LogicException('AES encryption streams only support being rewound, not arbitrary seeking.');
         }
     }
 
@@ -124,9 +106,15 @@ class AesDecryptingStream implements StreamInterface
         );
 
         if ($plaintext === false) {
-            throw new DecryptionFailedException("Unable to decrypt $cipherText with an initialization vector"
-                . " of {$this->cipherMethod->getCurrentIv()} using the {$this->cipherMethod->getOpenSslName()}"
-                . " algorithm. Please ensure you have provided the correct algorithm, initialization vector, and key.");
+            throw new DecryptionFailedException(
+                sprintf('Unable to decrypt %s with an initialization vector', $cipherText)
+                . sprintf(
+                    ' of %s using the %s',
+                    $this->cipherMethod->getCurrentIv(),
+                    $this->cipherMethod->getOpenSslName()
+                )
+                . " algorithm. Please ensure you have provided the correct algorithm, initialization vector, and key."
+            );
         }
 
         $this->cipherMethod->update($cipherText);

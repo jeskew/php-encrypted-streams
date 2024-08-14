@@ -8,8 +8,6 @@ interface CipherMethod
     /**
      * Returns an identifier recognizable by `openssl_*` functions, such as
      * `aes-256-cbc` or `aes-128-ctr`.
-     *
-     * @return string
      */
     public function getOpenSslName(): string;
 
@@ -29,8 +27,6 @@ interface CipherMethod
      * Adjust the return of this::getCurrentIv to reflect a seek performed on
      * the encryption stream using this IV object.
      *
-     * @param int $offset
-     * @param int $whence
      *
      * @throws LogicException   Thrown if the requested seek is not supported by
      *                          this IV implementation. For example, a CBC IV
@@ -42,8 +38,6 @@ interface CipherMethod
     /**
      * Take account of the last cipher text block to adjust the return of
      * this::getCurrentIv
-     *
-     * @param string $cipherTextBlock
      */
     public function update(string $cipherTextBlock): void;
 }

@@ -1,4 +1,5 @@
 <?php
+
 namespace Jsq\EncryptionStreams;
 
 use GuzzleHttp\Psr7\StreamDecoratorTrait;
@@ -8,19 +9,10 @@ class Base64DecodingStream implements StreamInterface
 {
     use StreamDecoratorTrait;
 
-    /**
-     * @var string
-     */
-    private $buffer = '';
+    private string $buffer = '';
 
-    /**
-     * @var StreamInterface
-     */
-    private $stream;
-
-    public function __construct(StreamInterface $stream)
+    public function __construct(private readonly StreamInterface $stream)
     {
-        $this->stream = $stream;
     }
 
     public function getSize(): ?int
@@ -28,9 +20,9 @@ class Base64DecodingStream implements StreamInterface
         return null;
     }
 
-    public function read($length): string
+    public function read(int $length): string
     {
-        $toRead = ceil($length / 3) * 4;
+        $toRead = (int)ceil($length / 3) * 4;
         $this->buffer .= base64_decode($this->stream->read($toRead));
 
         $toReturn = substr($this->buffer, 0, $length);

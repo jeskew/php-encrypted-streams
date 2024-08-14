@@ -1,29 +1,37 @@
 <?php
+
 namespace Jsq\EncryptionStreams;
 
-use GuzzleHttp\Psr7;
+use GuzzleHttp\Psr7\Utils;
 
 trait AesEncryptionStreamTestTrait
 {
-    public function cartesianJoinInputCipherMethodProvider()
+    public static function cartesianJoinInputCipherMethodProvider(): array
     {
         $toReturn = [];
-        $plainTexts = $this->unwrapProvider([$this, 'plainTextProvider']);
+        $plainTexts = self::unwrapProvider(self::plainTextProvider());
+        $counter = count($plainTexts);
 
-        for ($i = 0; $i < count($plainTexts); $i++) {
-            for ($j = 0; $j < count($this->cipherMethodProvider()); $j++) {
-                $toReturn []= [
+        for ($i = 0; $i < $counter; $i++) {
+            for ($j = 0; $j < count(self::cipherMethodProvider()); $j++) {
+                $toReturn [] = [
                     // Test each string with standard temp streams
-                    Psr7\stream_for($plainTexts[$i]),
+                    Utils::streamFor($plainTexts[$i]),
                     $plainTexts[$i],
-                    $this->cipherMethodProvider()[$j][0]
+                    self::cipherMethodProvider()[$j][0]
                 ];
 
-                $toReturn []= [
+                $toReturn [] = [
                     // Test each string with a stream that does not know its own size
-                    Psr7\stream_for((function ($pt) { yield $pt; })($plainTexts[$i])),
+                    Utils::streamFor(
+                        (function ($pt) {
+                            yield $pt;
+                        })(
+                            $plainTexts[$i]
+                        )
+                    ),
                     $plainTexts[$i],
-                    $this->cipherMethodProvider()[$j][0]
+                    self::cipherMethodProvider()[$j][0]
                 ];
             }
         }
@@ -31,24 +39,31 @@ trait AesEncryptionStreamTestTrait
         return $toReturn;
     }
 
-    public function cartesianJoinInputKeySizeProvider()
+    public static function cartesianJoinInputKeySizeProvider(): array
     {
         $toReturn = [];
-        $plainTexts = $this->unwrapProvider([$this, 'plainTextProvider']);
-        $keySizes = $this->unwrapProvider([$this, 'keySizeProvider']);
+        $plainTexts = self::unwrapProvider(self::plainTextProvider());
+        $keySizes = self::unwrapProvider(self::keySizeProvider());
+        $counter = count($plainTexts);
 
-        for ($i = 0; $i < count($plainTexts); $i++) {
+        for ($i = 0; $i < $counter; $i++) {
             for ($j = 0; $j < count($keySizes); $j++) {
-                $toReturn []= [
+                $toReturn [] = [
                     // Test each string with standard temp streams
-                    Psr7\stream_for($plainTexts[$i]),
+                    Utils::streamFor($plainTexts[$i]),
                     $plainTexts[$i],
                     $keySizes[$j],
                 ];
 
-                $toReturn []= [
+                $toReturn [] = [
                     // Test each string with a stream that does not know its own size
-                    Psr7\stream_for((function ($pt) { yield $pt; })($plainTexts[$i])),
+                    Utils::streamFor(
+                        (function ($pt) {
+                            yield $pt;
+                        })(
+                            $plainTexts[$i]
+                        )
+                    ),
                     $plainTexts[$i],
                     $keySizes[$j],
                 ];
@@ -58,32 +73,34 @@ trait AesEncryptionStreamTestTrait
         return $toReturn;
     }
 
-    public function cipherMethodProvider()
+    public static function cipherMethodProvider(): array
     {
         $toReturn = [];
-        foreach ($this->unwrapProvider([$this, 'keySizeProvider']) as $keySize) {
-            $toReturn []= [new Cbc(
-                random_bytes(openssl_cipher_iv_length('aes-256-cbc')),
-                $keySize
-            )];
-            $toReturn []= [new Ctr(
-                random_bytes(openssl_cipher_iv_length('aes-256-ctr')),
-                $keySize
-            )];
-            $toReturn []= [new Ecb($keySize)];
+        foreach (self::unwrapProvider(self::keySizeProvider()) as $keySize) {
+            $toReturn [] = [
+                new Cbc(
+                    random_bytes(openssl_cipher_iv_length('aes-256-cbc')),
+                    $keySize
+                )
+            ];
+            $toReturn [] = [
+                new Ctr(
+                    random_bytes(openssl_cipher_iv_length('aes-256-ctr')),
+                    $keySize
+                )
+            ];
+            $toReturn [] = [new Ecb($keySize)];
         }
 
         return $toReturn;
     }
 
-    public function seekableCipherMethodProvider()
+    public static function seekableCipherMethodProvider(): array
     {
-        return array_filter($this->cipherMethodProvider(), function (array $args) {
-            return !($args[0] instanceof Cbc);
-        });
+        return array_filter(self::cipherMethodProvider(), fn(array $args): bool => !($args[0] instanceof Cbc));
     }
 
-    public function keySizeProvider()
+    public static function keySizeProvider(): array
     {
         return [
             [128],
@@ -92,7 +109,8 @@ trait AesEncryptionStreamTestTrait
         ];
     }
 
-    public function plainTextProvider() {
+    public static function plainTextProvider(): array
+    {
         return [
             ['The rain in Spain falls mainly on the plain.'],
             ['دست‌نوشته‌ها نمی‌سوزند'],
@@ -104,10 +122,8 @@ trait AesEncryptionStreamTestTrait
         ];
     }
 
-    private function unwrapProvider(callable $provider)
+    private static function unwrapProvider(array $provider): array
     {
-        return array_map(function (array $wrapped) {
-            return $wrapped[0];
-        }, call_user_func($provider));
+        return array_map(fn(array $wrapped) => $wrapped[0], $provider);
     }
 }

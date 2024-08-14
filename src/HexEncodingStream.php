@@ -1,4 +1,5 @@
 <?php
+
 namespace Jsq\EncryptionStreams;
 
 use GuzzleHttp\Psr7\StreamDecoratorTrait;
@@ -8,19 +9,10 @@ class HexEncodingStream implements StreamInterface
 {
     use StreamDecoratorTrait;
 
-    /**
-     * @var string
-     */
-    private $buffer = '';
+    private string $buffer = '';
 
-    /**
-     * @var StreamInterface
-     */
-    private $stream;
-
-    public function __construct(StreamInterface $stream)
+    public function __construct(private readonly StreamInterface $stream)
     {
-        $this->stream = $stream;
     }
 
     public function getSize(): ?int
@@ -33,7 +25,7 @@ class HexEncodingStream implements StreamInterface
 
     public function read($length): string
     {
-        $this->buffer .= bin2hex($this->stream->read(ceil($length / 2)));
+        $this->buffer .= bin2hex($this->stream->read((int)ceil($length / 2)));
 
         $toReturn = substr($this->buffer, 0, $length);
         $this->buffer = substr($this->buffer, $length);

@@ -6,29 +6,24 @@ use LogicException;
 
 class Ctr implements CipherMethod
 {
-    const BLOCK_SIZE = 16;
-    const CTR_BLOCK_MAX = 65536; // maximum 16-bit unsigned integer value
+    public const BLOCK_SIZE = 16;
+
+    public const CTR_BLOCK_MAX = 65536; // maximum 16-bit unsigned integer value
 
     /**
      * The hash initialization vector, stored as eight 16-bit words
      * @var int[]
      */
-    private $iv;
+    private readonly array $iv;
 
     /**
      * The counter offset to add to the initialization vector
      * @var int[]
      */
-    private $ctrOffset;
+    private array $ctrOffset;
 
-    /**
-     * @var int
-     */
-    private $keySize;
-
-    public function __construct(string $iv, int $keySize = 256)
+    public function __construct(string $iv, private readonly int $keySize = 256)
     {
-        $this->keySize = $keySize;
         if (strlen($iv) !== openssl_cipher_iv_length($this->getOpenSslName())) {
             throw new InvalidArgumentException('Invalid initialization vector');
         }
@@ -39,7 +34,7 @@ class Ctr implements CipherMethod
 
     public function getOpenSslName(): string
     {
-        return "aes-{$this->keySize}-ctr";
+        return sprintf('aes-%d-ctr', $this->keySize);
     }
 
     public function getCurrentIv(): string
@@ -55,20 +50,19 @@ class Ctr implements CipherMethod
     public function seek(int $offset, int $whence = SEEK_SET): void
     {
         if ($offset % self::BLOCK_SIZE !== 0) {
-            throw new LogicException('CTR initialization vectors only support '
-                . ' seeking to indexes that are multiples of '
+            throw new LogicException('CTR initialization vectors only support  seeking to indexes that are multiples of '
                 . self::BLOCK_SIZE);
         }
 
         if ($whence === SEEK_SET) {
             $this->resetOffset();
-            $this->incrementOffset($offset / self::BLOCK_SIZE);
+            $this->incrementOffset((int)ceil($offset / self::BLOCK_SIZE));
         } elseif ($whence === SEEK_CUR) {
             if ($offset < 0) {
                 throw new LogicException('Negative offsets are not supported.');
             }
 
-            $this->incrementOffset($offset / self::BLOCK_SIZE);
+            $this->incrementOffset((int)ceil($offset / self::BLOCK_SIZE));
         } else {
             throw new LogicException('Unrecognized whence.');
         }
@@ -76,24 +70,20 @@ class Ctr implements CipherMethod
 
     public function update(string $cipherTextBlock): void
     {
-        $this->incrementOffset(strlen($cipherTextBlock) / self::BLOCK_SIZE);
+        $this->incrementOffset((int)ceil(strlen($cipherTextBlock) / self::BLOCK_SIZE));
     }
 
     /**
-     * @param string $iv
      * @return int[]
      */
     private function extractIvParts(string $iv): array
     {
-        return array_map(function ($part) {
-            return unpack('nnum', $part)['num'];
-        }, str_split($iv, 2));
+        return array_map(fn($part) => unpack('nnum', $part)['num'], str_split($iv, 2));
     }
 
     /**
      * @param int[] $baseIv
      * @param int[] $ctrOffset
-     * @return string
      */
     private function calculateCurrentIv(array $baseIv, array $ctrOffset): string
     {
@@ -105,9 +95,7 @@ class Ctr implements CipherMethod
             $iv[$i] = $sum % self::CTR_BLOCK_MAX;
         }
 
-        return implode(array_map(function ($ivBlock) {
-            return pack('n', $ivBlock);
-        }, $iv));
+        return implode('', array_map(fn($ivBlock): string => pack('n', $ivBlock), $iv));
     }
 
     private function incrementOffset(int $incrementBy): void

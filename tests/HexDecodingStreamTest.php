@@ -1,41 +1,39 @@
 <?php
 namespace Jsq\EncryptionStreams;
 
-use GuzzleHttp\Psr7;
+use GuzzleHttp\Psr7\Utils;
 use GuzzleHttp\Psr7\PumpStream;
 use PHPUnit\Framework\TestCase;
 
 class HexDecodingStreamTest extends TestCase
 {
-    const MB = 1048576;
+    public const MB = 1048576;
 
-    public function testEncodingShouldMatchHex2BinOutput()
+    public function testEncodingShouldMatchHex2BinOutput(): void
     {
-        $stream = Psr7\stream_for(bin2hex(random_bytes(1027)));
+        $stream = Utils::streamFor(bin2hex(random_bytes(1027)));
         $encodingStream = new HexDecodingStream($stream);
 
         $this->assertSame(hex2bin($stream), (string) $encodingStream);
     }
 
-    public function testShouldReportSizeOfDecodedStream()
+    public function testShouldReportSizeOfDecodedStream(): void
     {
-        $stream = Psr7\stream_for(bin2hex(random_bytes(1027)));
+        $stream = Utils::streamFor(bin2hex(random_bytes(1027)));
         $encodingStream = new HexDecodingStream($stream);
 
         $this->assertSame(strlen(hex2bin($stream)), $encodingStream->getSize());
     }
 
-    public function testShouldReportNullIfSizeOfSourceStreamUnknown()
+    public function testShouldReportNullIfSizeOfSourceStreamUnknown(): void
     {
-        $stream = new PumpStream(function () {
-            return bin2hex(random_bytes(self::MB));
-        });
+        $stream = new PumpStream(fn(): string => bin2hex(random_bytes(self::MB)));
         $encodingStream = new HexDecodingStream($stream);
 
         $this->assertNull($encodingStream->getSize());
     }
 
-    public function testMemoryUsageRemainsConstant()
+    public function testMemoryUsageRemainsConstant(): void
     {
         $memory = memory_get_usage();
 

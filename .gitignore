@@ -1,6 +1,6 @@
 composer.phar
 /vendor/
 composer.lock
-
 coverage-report/
-
+.phpunit.result.cache
+.idea

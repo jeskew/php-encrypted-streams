@@ -1,24 +1,23 @@
 <?php
+
 namespace Jsq\EncryptionStreams;
 
-use GuzzleHttp\Psr7;
-use http\Exception\RuntimeException;
+use PHPUnit\Framework\Attributes\DataProvider;
+use GuzzleHttp\Psr7\Utils;
+use LogicException;
 use PHPUnit\Framework\TestCase;
+use ValueError;
 
 class HashingStreamTest extends TestCase
 {
-    /**
-     * @dataProvider hashAlgorithmProvider
-     *
-     * @param string $algorithm
-     */
-    public function testHashShouldMatchThatReturnedByHashMethod($algorithm)
+    #[DataProvider('hashAlgorithmProvider')]
+    public function testHashShouldMatchThatReturnedByHashMethod(string $algorithm): void
     {
         $toHash = random_bytes(1025);
         $instance = new HashingStream(
-            Psr7\stream_for($toHash),
+            Utils::streamFor($toHash),
             null,
-            function ($hash) use ($toHash, $algorithm) {
+            function ($hash) use ($toHash, $algorithm): void {
                 $this->assertSame(hash($algorithm, $toHash, true), $hash);
             },
             $algorithm
@@ -32,20 +31,16 @@ class HashingStreamTest extends TestCase
         );
     }
 
-    /**
-     * @dataProvider hmacAlgorithmProvider
-     *
-     * @param string $algorithm
-     */
+    #[DataProvider('hmacAlgorithmProvider')]
     public function testAuthenticatedHashShouldMatchThatReturnedByHashMethod(
-        $algorithm
-    ) {
+        string $algorithm
+    ): void {
         $key = 'secret key';
         $toHash = random_bytes(1025);
         $instance = new HashingStream(
-            Psr7\stream_for($toHash),
+            Utils::streamFor($toHash),
             $key,
-            function ($hash) use ($toHash, $key, $algorithm) {
+            function ($hash) use ($toHash, $key, $algorithm): void {
                 $this->assertSame(
                     hash_hmac($algorithm, $toHash, $key, true),
                     $hash
@@ -62,20 +57,16 @@ class HashingStreamTest extends TestCase
         );
     }
 
-    /**
-     * @dataProvider hmacAlgorithmProvider
-     *
-     * @param string $algorithm
-     */
-    public function testHashingStreamsCanBeRewound($algorithm)
+    #[DataProvider('hmacAlgorithmProvider')]
+    public function testHashingStreamsCanBeRewound(string $algorithm): void
     {
         $key = 'secret key';
         $toHash = random_bytes(1025);
         $callCount = 0;
         $instance = new HashingStream(
-            Psr7\stream_for($toHash),
+            Utils::streamFor($toHash),
             $key,
-            function ($hash) use ($toHash, $key, $algorithm, &$callCount) {
+            function ($hash) use ($toHash, $key, $algorithm, &$callCount): void {
                 ++$callCount;
                 $this->assertSame(
                     hash_hmac($algorithm, $toHash, $key, true),
@@ -92,34 +83,36 @@ class HashingStreamTest extends TestCase
         $this->assertSame(2, $callCount);
     }
 
-    public function hmacAlgorithmProvider()
+    /**
+     * @return non-falsy-string[][]
+     */
+    public static function hmacAlgorithmProvider(): array
     {
         $cryptoHashes = [];
         foreach (hash_algos() as $algo) {
-            // As of PHP 7.2, feeding a non-cryptographic hashing
-            // algorithm to `hash_init` will trigger an error, and
-            // feeding one to `hash_hmac` will cause the function to
-            // return `false`.
-            // cf https://www.php.net/manual/en/migration72.incompatible.php#migration72.incompatible.hash-functions
-            if (@hash_hmac($algo, 'data', 'secret key')) {
-                $cryptoHashes []= [$algo];
+            // As of PHP 8.0, feeding a non-cryptographic hashing
+            // algorithm to `hash_init` will throw ValueError exception.
+            // cf https://www.php.net/manual/en/function.hash-hmac.php
+            try {
+                if (@hash_hmac($algo, 'data', 'secret key') !== '0') {
+                    $cryptoHashes [] = [$algo];
+                }
+            } catch (ValueError) {
             }
         }
 
         return $cryptoHashes;
     }
 
-    public function hashAlgorithmProvider()
+    public static function hashAlgorithmProvider(): array
     {
-        return array_map(function ($algo) { return [$algo]; }, hash_algos());
+        return array_map(fn($algo): array => [$algo], hash_algos());
     }
 
-    /**
-     * @expectedException \LogicException
-     */
-    public function testDoesNotSupportArbitrarySeeking()
+    public function testDoesNotSupportArbitrarySeeking(): void
     {
-        $instance = new HashingStream(Psr7\stream_for(random_bytes(1025)));
+        $this->expectException(LogicException::class);
+        $instance = new HashingStream(Utils::streamFor(random_bytes(1025)));
         $instance->seek(1);
     }
 }

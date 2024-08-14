@@ -1,17 +1,19 @@
 <?php
 namespace Jsq\EncryptionStreams;
 
+use InvalidArgumentException;
+use LogicException;
 use PHPUnit\Framework\TestCase;
 
 class CtrTest extends TestCase
 {
-    public function testShouldReportCipherMethodOfCTR()
+    public function testShouldReportCipherMethodOfCTR(): void
     {
         $ivString = random_bytes(openssl_cipher_iv_length('aes-256-ctr'));
         $this->assertSame('aes-256-ctr', (new Ctr($ivString))->getOpenSslName());
     }
 
-    public function testShouldReturnInitialIvStringForCurrentIvBeforeUpdate()
+    public function testShouldReturnInitialIvStringForCurrentIvBeforeUpdate(): void
     {
         $ivString = random_bytes(openssl_cipher_iv_length('aes-256-ctr'));
         $iv = new Ctr($ivString);
@@ -19,9 +21,9 @@ class CtrTest extends TestCase
         $this->assertSame($ivString, $iv->getCurrentIv());
     }
 
-    public function testUpdateShouldSetIncrementIvByNumberOfBlocksProcessed()
+    public function testUpdateShouldSetIncrementIvByNumberOfBlocksProcessed(): void
     {
-        $ivString = $iv = hex2bin('deadbeefdeadbeefdeadbeefdeadbeee');
+        $ivString = hex2bin('deadbeefdeadbeefdeadbeefdeadbeee');
         $iv = new Ctr($ivString);
         $cipherTextBlock = random_bytes(Ctr::BLOCK_SIZE);
 
@@ -33,15 +35,13 @@ class CtrTest extends TestCase
         );
     }
 
-    /**
-     * @expectedException \InvalidArgumentException
-     */
-    public function testShouldThrowWhenIvOfInvalidLengthProvided()
+    public function testShouldThrowWhenIvOfInvalidLengthProvided(): void
     {
+        $this->expectException(InvalidArgumentException::class);
         new Ctr(random_bytes(openssl_cipher_iv_length('aes-256-ctr') + 1));
     }
 
-    public function testShouldSupportSeekingToBeginning()
+    public function testShouldSupportSeekingToBeginning(): void
     {
         $ivString = random_bytes(openssl_cipher_iv_length('aes-256-ctr'));
         $iv = new Ctr($ivString);
@@ -52,7 +52,7 @@ class CtrTest extends TestCase
         $this->assertSame($ivString, $iv->getCurrentIv());
     }
 
-    public function testShouldSupportSeekingFromCurrentPosition()
+    public function testShouldSupportSeekingFromCurrentPosition(): void
     {
         $ivString = random_bytes(openssl_cipher_iv_length('aes-256-ctr'));
         $iv = new Ctr($ivString);
@@ -64,11 +64,9 @@ class CtrTest extends TestCase
         $this->assertNotSame($updatedIv, $iv->getCurrentIv());
     }
 
-    /**
-     * @expectedException \LogicException
-     */
-    public function testShouldThrowWhenSeekOffsetNotDivisibleByBlockSize()
+    public function testShouldThrowWhenSeekOffsetNotDivisibleByBlockSize(): void
     {
+        $this->expectException(LogicException::class);
         $ivString = random_bytes(openssl_cipher_iv_length('aes-256-ctr'));
         $iv = new Ctr($ivString);
         $cipherTextBlock = random_bytes(1024);
@@ -77,11 +75,9 @@ class CtrTest extends TestCase
         $iv->seek(1);
     }
 
-    /**
-     * @expectedException \LogicException
-     */
-    public function testShouldThrowWhenNegativeSeekCurProvidedToSeek()
+    public function testShouldThrowWhenNegativeSeekCurProvidedToSeek(): void
     {
+        $this->expectException(LogicException::class);
         $ivString = random_bytes(openssl_cipher_iv_length('aes-256-ctr'));
         $iv = new Ctr($ivString);
         $cipherTextBlock = random_bytes(1024);
@@ -90,11 +86,9 @@ class CtrTest extends TestCase
         $iv->seek(Ctr::BLOCK_SIZE * -1, SEEK_CUR);
     }
 
-    /**
-     * @expectedException \LogicException
-     */
-    public function testShouldThrowWhenSeekEndProvidedToSeek()
+    public function testShouldThrowWhenSeekEndProvidedToSeek(): void
     {
+        $this->expectException(LogicException::class);
         $ivString = random_bytes(openssl_cipher_iv_length('aes-256-ctr'));
         $iv = new Ctr($ivString);
         $cipherTextBlock = random_bytes(1024);

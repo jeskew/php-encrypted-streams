@@ -1,49 +1,33 @@
 <?php
+
 namespace Jsq\EncryptionStreams;
 
-use GuzzleHttp\Psr7;
 use GuzzleHttp\Psr7\StreamDecoratorTrait;
+use GuzzleHttp\Psr7\Utils;
 use Psr\Http\Message\StreamInterface;
 
+#[\AllowDynamicProperties]
 class AesGcmEncryptingStream implements StreamInterface
 {
     use StreamDecoratorTrait;
 
-    private $aad;
-
-    private $initializationVector;
-
-    private $key;
-
-    private $keySize;
-
-    private $plaintext;
-
-    private $tag = '';
-
-    private $tagLength;
+    private string $tag = '';
 
     public function __construct(
-        StreamInterface $plaintext,
-        string $key,
-        string $initializationVector,
-        string $aad = '',
-        int $tagLength = 16,
-        int $keySize = 256
+        private readonly StreamInterface $plaintext,
+        private readonly string $key,
+        private readonly string $initializationVector,
+        private readonly string $aad = '',
+        private readonly int $tagLength = 16,
+        private readonly int $keySize = 256
     ) {
-        $this->plaintext = $plaintext;
-        $this->key = $key;
-        $this->initializationVector = $initializationVector;
-        $this->aad = $aad;
-        $this->tagLength = $tagLength;
-        $this->keySize = $keySize;
     }
 
     public function createStream(): StreamInterface
     {
         $cipherText = openssl_encrypt(
-            (string) $this->plaintext,
-            "aes-{$this->keySize}-gcm",
+            (string)$this->plaintext,
+            sprintf('aes-%d-gcm', $this->keySize),
             $this->key,
             OPENSSL_RAW_DATA,
             $this->initializationVector,
@@ -53,12 +37,14 @@ class AesGcmEncryptingStream implements StreamInterface
         );
 
         if ($cipherText === false) {
-            throw new EncryptionFailedException("Unable to encrypt data with an initialization vector"
-                . " of {$this->initializationVector} using the aes-{$this->keySize}-gcm algorithm. Please"
-                . " ensure you have provided a valid key size and initialization vector.");
+            throw new EncryptionFailedException(
+                "Unable to encrypt data with an initialization vector"
+                . sprintf(' of %s using the aes-%d-gcm algorithm. Please', $this->initializationVector, $this->keySize)
+                . " ensure you have provided a valid key size and initialization vector."
+            );
         }
 
-        return Psr7\stream_for($cipherText);
+        return Utils::streamFor($cipherText);
     }
 
     public function getTag(): string
